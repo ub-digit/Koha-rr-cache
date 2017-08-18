@@ -295,13 +295,7 @@ Returns 1 on success 0 on failure
 
 sub ModBiblio {
     my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
-<<<<<<<
     $options //= {};
-=======
-    my %mod_biblio_marc_options;
-    $mod_biblio_marc_options{'defer_search_engine_indexing'} =
-        defined $options and exists $options->{'defer_search_engine_indexing'} and $options->{'defer_search_engine_indexing'};
->>>>>>>
 
     if (!$record) {
         carp 'No record passed to ModBiblio';
@@ -346,11 +340,7 @@ sub ModBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-<<<<<<<
-    ModBiblioMarc( $record, $biblionumber, $frameworkcode, \%mod_biblio_marc_options );
-=======
     ModBiblioMarc( $record, $biblionumber, $frameworkcode, { 'context' => $options->{'context'} } );
->>>>>>>
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -3369,11 +3359,7 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-<<<<<<<
   &ModBiblioMarc($newrec, $biblionumber, $frameworkcode, $options);
-=======
-  &ModBiblioMarc($newrec,$biblionumber,$frameworkcode,$options);
->>>>>>>
 
 Add MARC XML data for a biblio to koha
 
@@ -3385,11 +3371,6 @@ sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
     # the marcxml field
     my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
-<<<<<<<
-=======
-    my $defer_search_engine_indexing =
-        defined $options and exists $options->{'defer_search_engine_indexing'} and $options->{'defer_search_engine_indexing'};
->>>>>>>
 
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
@@ -3467,7 +3448,7 @@ sub ModBiblioMarc {
         $m_rs->metadata( $record->as_xml_record($encoding) );
         $m_rs->store;
     }
-    ModZebra( $biblionumber, "specialUpdate", "biblioserver", $record ) unless $defer_search_engine_indexing;
+    ModZebra( $biblionumber, "specialUpdate", "biblioserver", $record );
     return $biblionumber;
 }
 
