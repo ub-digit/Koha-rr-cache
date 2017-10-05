@@ -209,31 +209,52 @@ if ($test_parameter) {
     print "TESTING MODE ONLY\n    DOING NOTHING\n===============\n";
 }
 
+my $batch;
 my $marc_flavour = C4::Context->preference('marcflavour') || 'MARC21';
-
 print "Characteristic MARC flavour: $marc_flavour\n" if $verbose;
 my $starttime = gettimeofday;
-my $batch;
-my $fh = IO::File->new($input_marc_file); # don't let MARC::Batch open the file, as it applies the ':utf8' IO layer
-if (defined $format && $format =~ /XML/i) {
-    # ugly hack follows -- MARC::File::XML, when used by MARC::Batch,
-    # appears to try to convert incoming XML records from MARC-8
-    # to UTF-8.  Setting the BinaryEncoding key turns that off
-    # TODO: see what happens to ISO-8859-1 XML files.
-    # TODO: determine if MARC::Batch can be fixed to handle
-    #       XML records properly -- it probably should be
-    #       be using a proper push or pull XML parser to
-    #       extract the records, not using regexes to look
-    #       for <record>.*</record>.
-    $MARC::File::XML::_load_args{BinaryEncoding} = 'utf-8';
-    my $recordformat = ($marc_flavour eq "MARC21" ? "USMARC" : uc($marc_flavour));
-    #UNIMARC Authorities have a different way to manage encoding than UNIMARC biblios.
-    $recordformat = $recordformat . "AUTH" if ($authorities and $marc_flavour ne "MARC21");
-    $MARC::File::XML::_load_args{RecordFormat} = $recordformat;
-    $batch = MARC::Batch->new('XML', $fh);
-}
-else {
+
+if ($to_marc_plugin) {
+	my $marc_records_blob = undef;
+	{
+		local $/ = undef;
+		open FILE, $input_marc_file;
+		binmode FILE, ':raw';
+		$marc_records_blob = <FILE>;
+		close FILE;
+	}
+	$marc_records_blob = Koha::Plugins::Handler->run(
+		{
+			class  => $to_marc_plugin,
+			method => 'to_marc',
+			params => { data => $marc_records_blob }
+		}
+	);
+    open(my $fh, "<", \$marc_records_blob);
+    binmode $fh, ':raw';
     $batch = MARC::Batch->new('USMARC', $fh);
+} else {
+    my $fh = IO::File->new($input_marc_file); # don't let MARC::Batch open the file, as it applies the ':utf8' IO layer
+    if (defined $format && $format =~ /XML/i) {
+        # ugly hack follows -- MARC::File::XML, when used by MARC::Batch,
+        # appears to try to convert incoming XML records from MARC-8
+        # to UTF-8.  Setting the BinaryEncoding key turns that off
+        # TODO: see what happens to ISO-8859-1 XML files.
+        # TODO: determine if MARC::Batch can be fixed to handle
+        #       XML records properly -- it probably should be
+        #       be using a proper push or pull XML parser to
+        #       extract the records, not using regexes to look
+        #       for <record>.*</record>.
+        $MARC::File::XML::_load_args{BinaryEncoding} = 'utf-8';
+        my $recordformat = ($marc_flavour eq "MARC21" ? "USMARC" : uc($marc_flavour));
+        #UNIMARC Authorities have a different way to manage encoding than UNIMARC biblios.
+        $recordformat = $recordformat . "AUTH" if ($authorities and $marc_flavour ne "MARC21");
+        $MARC::File::XML::_load_args{RecordFormat} = $recordformat;
+        $batch = MARC::Batch->new('XML', $fh);
+    }
+    else {
+        $batch = MARC::Batch->new('USMARC', $fh);
+    }
 }
 $batch->warnings_off();
 $batch->strict_off();
@@ -314,13 +335,6 @@ RECORD: while () {
         last;
     }
 }
-$marc_records = Koha::Plugins::Handler->run(
-    {
-        class  => $to_marc_plugin,
-        method => 'to_marc',
-        params => { data => $marc_records }
-    }
-) if $to_marc_plugin && @{$marc_records};
 
 RECORD: foreach my $record (@{$marc_records}) {
     $i++;
@@ -512,7 +526,7 @@ RECORD: foreach my $record (@{$marc_records}) {
             if ($matched_record_id) {
                 # TODO: Implement also for authority records!
                 eval{
-                    $biblioitemnumber = Koha::Biblios->find( $biblionumber )->biblioitem->biblioitemnumber;
+                    $biblioitemnumber = Koha::Biblios->find( $matched_record_id )->biblioitem->biblioitemnumber;
                 };
                 if ($update) {
 <<<<<<<
@@ -633,7 +647,7 @@ RECORD: foreach my $record (@{$marc_records}) {
                 C4::Biblio::_strip_item_fields($record, $framework);
                 if ($record_has_added_items || $matched_record_id) {
                     # Replace with record from GetMarcBiblio with "$embeditems = 1"
-                    $record = GetMarcBiblio($record_id, 1);
+                    $record = GetMarcBiblio({biblionumber => $record_id, embed_items => 1});
                 }
                 push @search_engine_record_ids, $record_id;
                 push @search_engine_records, $record;
