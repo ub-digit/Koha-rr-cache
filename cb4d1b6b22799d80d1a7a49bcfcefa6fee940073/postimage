@@ -1,19 +1,12 @@
 OPAC:
     Appearance:
         -
-            - pref: OPACUserSummary
+            - pref: enableCoverImagesInOpacList
               choices:
-                  yes: Show
-                  no: "Don't show"
-            - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
         -
-<<<<<<<
-            - pref: ShowICalLinkInSummary
-              choices:
-                  yes: "Enable"
-                  no: "Disable"
-            -  Show iCal link under OPAC item list.
-=======
             - pref: enableOpacCatalogBrowsing
               choices:
                   yes: "Enable"
@@ -27,7 +20,12 @@ OPAC:
             - for links to bibliographic records. The external URL is
             - pref: externalSiteURL
               class: url
->>>>>>>
+        -
+            - pref: ShowICalLinkInSummary
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  Show iCal link under OPAC item list.
         -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
@@ -69,6 +67,7 @@ OPAC:
                   yes: Emphasize
                   no: "Don't emphasize"
             - "results from the "
+        -
             - pref: HighlightOwnItemsOnOPACWhich
               choices:
                   PatronBranch: "patron's home branch"
@@ -171,15 +170,13 @@ OPAC:
                   both: "home and holding libraries"
             - for items on the OPAC record details page.
         -
-            - 'Display the shelving location '
-            - pref: OpacLocationOnDetail
+            - Display the shelving location under the
+            - pref: OpacLocationBranchToDisplayShelving
               choices:
-                  home: "below the home library"
-                  holding: "below the holding library"
-                  both: "below both home and holding libraries"
-                  column: "on a separate column"
-            - "for items on the OPAC record details page."
-            - "<br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page"
+                  home: "home library"
+                  holding: "holding library"
+                  both: "home and holding libraries"
+            - for items on the OPAC record details page.
         -
             - pref: OpacKohaUrl
               default: 0
@@ -194,6 +191,13 @@ OPAC:
                   yes: Show
                   no: "Don't show"
             - a link to recent comments in the OPAC masthead.
+        -
+            - pref: OPACShowBarcode
+              default: 0
+              choices:
+                  yes: Show
+                  no: "Don't show"
+            - the item's barcode on the holdings tab.
         -
             - pref: GoogleIndicTransliteration
               default: 0

@@ -1,6 +1,18 @@
 OPAC:
     Appearance:
         -
+            - pref: OPACShowCancelButtonWhenInWaitingStatus
+              choices:
+                  yes: Yes
+                  no: "No"
+            - "Hide cancel button in holds table when status is waiting (Found=W)"
+        -
+            - pref: OPACRedirect
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "redirect from homepage to userpage"
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
@@ -8,12 +20,6 @@ OPAC:
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
         -
 <<<<<<<
-            - pref: ShowICalLinkInSummary
-              choices:
-                  yes: "Enable"
-                  no: "Disable"
-            -  Show iCal link under OPAC item list.
-=======
             - pref: enableOpacCatalogBrowsing
               choices:
                   yes: "Enable"
@@ -27,8 +33,17 @@ OPAC:
             - for links to bibliographic records. The external URL is
             - pref: externalSiteURL
               class: url
->>>>>>>
         -
+=======
+            - pref: enableSimpleOpacMessaging
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  the simple form of messaging options. This will enable the user to set sms, email or sms and email for all different events listed in the input box below.
+            - pref: whichActionsToTickUsingSimpleOpacMessaging
+              class: multi
+            - (separate columns with |)
+>>>>>>>
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
@@ -366,6 +381,12 @@ OPAC:
                   both: "both top and footer"
                   top: "top"
                   footer: "only footer"
+        -
+            - pref: enableCoverImagesInOpacList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
     Features:
         -
             - pref: opacuserlogin

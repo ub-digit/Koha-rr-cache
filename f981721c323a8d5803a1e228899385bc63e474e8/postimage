@@ -7,13 +7,14 @@ OPAC:
                   no: "Don't show"
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
         -
-<<<<<<<
-            - pref: ShowICalLinkInSummary
+            - pref: enableSimpleOpacMessaging
               choices:
                   yes: "Enable"
                   no: "Disable"
-            -  Show iCal link under OPAC item list.
-=======
+            -  the simple form of messaging options. This will enable the user to set sms, email or sms and email for all different events listed in the input box below.
+            - pref: whichActionsToTickUsingSimpleOpacMessaging
+              class: multi
+            - (separate columns with |)
             - pref: enableOpacCatalogBrowsing
               choices:
                   yes: "Enable"
@@ -27,7 +28,6 @@ OPAC:
             - for links to bibliographic records. The external URL is
             - pref: externalSiteURL
               class: url
->>>>>>>
         -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
@@ -366,6 +366,12 @@ OPAC:
                   both: "both top and footer"
                   top: "top"
                   footer: "only footer"
+        -
+            - pref: enableCoverImagesInOpacList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
     Features:
         -
             - pref: opacuserlogin

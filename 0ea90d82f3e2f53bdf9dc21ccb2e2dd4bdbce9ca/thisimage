@@ -1,18 +1,12 @@
 OPAC:
     Appearance:
         -
+<<<<<<<
             - pref: OPACUserSummary
               choices:
                   yes: Show
                   no: "Don't show"
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
-        -
-<<<<<<<
-            - pref: ShowICalLinkInSummary
-              choices:
-                  yes: "Enable"
-                  no: "Disable"
-            -  Show iCal link under OPAC item list.
 =======
             - pref: enableOpacCatalogBrowsing
               choices:
