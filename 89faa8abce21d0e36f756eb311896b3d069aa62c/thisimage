@@ -67,10 +67,11 @@ my  $sourcetag;
 my  $sourcesubfield;
 my  $idmapfl;
 my  $dedup_barcode;
-my  $framework;
+my  $framework = '';
 my  $localcust;
 my  $to_marc_plugin;
-my  $marc_modification_template;
+my $marc_mod_template = '';
+my $marc_mod_template_id = -1;
 $| = 1;
 
 GetOptions(
@@ -107,7 +108,7 @@ GetOptions(
     'framework=s' => \$framework,
     'custom:s'    => \$localcust,
     'tomarcplugin:s' => \$to_marc_plugin, # @FIXME: Validation?
-    'marcmodificationtemplate:s' => \$marc_modification_template, # @FIXME: Validation?
+    'marcmodtemplate:s' => \$marc_mod_template,
 );
 $biblios ||= !$authorities;
 $insert  ||= !$update;
@@ -235,21 +236,21 @@ print "Characteristic MARC flavour: $marc_flavour\n" if $verbose;
 my $starttime = gettimeofday;
 
 if ($to_marc_plugin) {
-	my $marc_records_blob = undef;
-	{
-		local $/ = undef;
-		open FILE, $input_marc_file;
-		binmode FILE, ':raw';
-		$marc_records_blob = <FILE>;
-		close FILE;
-	}
-	$marc_records_blob = Koha::Plugins::Handler->run(
-		{
-			class  => $to_marc_plugin,
-			method => 'to_marc',
-			params => { data => $marc_records_blob }
-		}
-	);
+    my $marc_records_blob = undef;
+    {
+        local $/ = undef;
+        open FILE, $input_marc_file;
+        binmode FILE, ':raw';
+        $marc_records_blob = <FILE>;
+        close FILE;
+    }
+    $marc_records_blob = Koha::Plugins::Handler->run(
+        {
+            class  => $to_marc_plugin,
+            method => 'to_marc',
+            params => { data => $marc_records_blob }
+        }
+    );
     open(my $fh, "<", \$marc_records_blob);
     binmode $fh, ':raw';
     $batch = MARC::Batch->new('USMARC', $fh);
@@ -362,7 +363,10 @@ RECORD: foreach my $record (@{$marc_records}) {
         print "." . ($i % 100 == 0 ? "\n$i" : '');
     }
 
-    ModifyRecordWithTemplate($marc_modification_template, $record) if ( $marc_modification_template );
+    if ($marc_mod_template_id > 0) {
+        print "Modifying MARC\n" if $verbose;
+        ModifyRecordWithTemplate( $marc_mod_template_id, $record );
+    }
 
     # remove trailing - in isbn (only for biblios, of course)
     if ($biblios && $cleanisbn) {
