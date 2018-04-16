@@ -531,8 +531,8 @@ OPAC:
             - pref: OPACShowDetailedDebarments
               default: 0
               choices:
-                  no: Don't show
-                  yes: Show
+                  no: Don't show 
+                  yes: Show 
             - detailed debarments
         -
             - pref: OPACAcquisitionDetails
