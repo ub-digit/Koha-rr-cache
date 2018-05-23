@@ -1,6 +1,24 @@
 OPAC:
     Appearance:
         -
+            - pref: enableCardnumberAndPersonalNumberAuth
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "use cardnumber as userid and personalnumber as password"
+        -
+            - pref: OPACRedirect
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "redirect from homepage to userpage"
+        -
+            - pref: OPACShowCancelButtonWhenInWaitingStatus
+              choices:
+                  yes: Yes
+                  no: "No"
+            - "Hide cancel button in holds table when status is waiting (Found=W)"
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
@@ -354,7 +372,7 @@ OPAC:
             - items on the biblio detail page (if the biblio has more items than this, a link is displayed instead that allows the user to choose to display all items).
         -
             - "Show the following HTML on the OPAC login form when a patron is not logged in:"
-            - pref: NoLoginInstructions
+            - pref: OpacLoginInstructions
               type: htmlarea
               class: code
         -
@@ -375,6 +393,12 @@ OPAC:
                   yes: Enable
                   no: Disable
             - "Enable cancel button in reserves list for items that are currently on the pickup shelf."
+        -
+            - pref: enableCoverImagesInOpacList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
     Features:
         -
             - pref: opacuserlogin
@@ -531,8 +555,8 @@ OPAC:
             - pref: OPACShowDetailedDebarments
               default: 0
               choices:
-                  no: Don't show 
-                  yes: Show 
+                  no: Don't show
+                  yes: Show
             - detailed debarments
         -
             - pref: OPACAcquisitionDetails
@@ -788,11 +812,6 @@ OPAC:
             - pref: PatronSelfModificationBorrowerUnwantedField
               class: multi
             - (separate columns with |)
-        -
-            - "Choose alternative URL for user registration form page:"
-            - pref: PatronSelfRegistrationLinkAddress
-              class: short
-            - "This field overrides default Koha registration form."
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions

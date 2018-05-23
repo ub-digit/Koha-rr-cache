@@ -83,7 +83,7 @@ sub _get_record_for_export {
                     }
                 }
             }
-            return undef if $no_target && $operator ne '!='; # TODO: ??
+            return undef if $no_target && $operator ne '!=';
         }
     }
 
