@@ -491,6 +491,18 @@ Circulation:
 >>>>>>>
     Checkin Policy:
         -
+            - pref: HoldsAutoFill
+              choices:
+                  yes: Do
+                  no: "Don't"
+            - automatically fill holds instead of asking the librarian.
+        -
+            - pref: HoldsAutoFillPrintSlip
+              choices:
+                  yes: Do
+                  no: "Don't"
+            - automatically display the hold slip dialog for auto-filled holds.
+        -
             - pref: BlockReturnOfWithdrawnItems
               choices:
                   yes: Block
@@ -522,7 +534,27 @@ Circulation:
                   yes: Cumulate
                   no: "Don't cumulate"
             - the restriction periods.
+        -
+            - pref: HidePersonalPatronDetailOnCirculation
+              choices:
+                  yes: Do
+                  no: "Don't"
+            - Hide patrons phone number, email address, street address and city in     the circulation page
     Holds Policy:
+        -
+            - In the staff client, split the holds queue into separate tables by
+            - pref: HoldsSplitQueue
+              choices:
+                  nothing: nothing
+                  branch: "pickup library"
+                  itemtype: "hold itemtype"
+                  branch_itemtype: "pickup library & itemtype"
+        -
+            - If the holds queue is split, show librarians
+            - pref: HoldsSplitQueueNumbering
+              choices:
+                  actual: "the actual priority, which may be out of order"
+                  virtual: "'virtual' priorities, where each group is numbered separately"
         -
             - pref: AllowHoldItemTypeSelection
               choices:
@@ -635,7 +667,7 @@ Circulation:
               choices:
                   yes: Enable
                   no:  "Don't enable"
-            - "the ability to place holds on multiple biblio from the search results"	    
+            - "the ability to place holds on multiple bibliographic records from the search results"
         -
             - pref: TransferWhenCancelAllWaitingHolds
               choices:
@@ -938,6 +970,12 @@ Circulation:
                   yes: Enable
                   no: "Don't enable"
             - patrons to place article requests.
+        -
+            - pref: ArticleRequestsLinkControl
+              choices:
+                  always: Always show
+                  calc: Use algorithm to show or hide
+            - article request link on search results.
         -
             - For records that are record level or item level requestable, make the following fields mandatory
             - pref: ArticleRequestsMandatoryFields
