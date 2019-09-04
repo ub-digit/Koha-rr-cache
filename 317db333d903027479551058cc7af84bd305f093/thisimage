@@ -281,8 +281,8 @@ else {
     Koha::Exporter::Record::export(
         {   record_type        => $record_type,
             record_ids         => \@record_ids,
-            deleted_record_ids => \@deleted_record_ids,
             record_conditions  => @marc_conditions ? \@marc_conditions : undef,
+            deleted_record_ids => \@deleted_record_ids,
             format             => $output_format,
             csv_profile_id     => $csv_profile_id,
             export_items       => (not $dont_export_items),

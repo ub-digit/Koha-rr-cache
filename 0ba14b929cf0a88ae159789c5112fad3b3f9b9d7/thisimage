@@ -34,7 +34,7 @@ sub _get_record_for_export {
     }
     if ( !$record ) {
         Koha::Logger->get->warn( "Record $record_id could not be exported." );
-        return undef;
+        return;
     }
 
     # If multiple conditions all are required to match (and)
@@ -64,9 +64,9 @@ sub _get_record_for_export {
             }
             else {
                 if ($operator eq '?') {
-                    return undef unless any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
+                    return unless any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
                 } elsif ($operator eq '!?') {
-                    return undef if any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
+                    return if any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
                 } else {
                     my $op;
                     if (exists $operators{$operator}) {
@@ -79,11 +79,11 @@ sub _get_record_for_export {
                         $no_target = 1;
                     }
                     else {
-                        return undef unless all { $op->($_, $match_value) } @target_values;
+                        return unless all { $op->($_, $match_value) } @target_values;
                     }
                 }
             }
-            return undef if $no_target && $operator ne '!=';
+            return if $no_target && $operator ne '!=';
         }
     }
 
@@ -162,7 +162,10 @@ sub _get_biblio_for_export {
     return if $@ or not defined $record;
 
     if ($export_items) {
-        C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, $itemnumbers );
+        C4::Biblio::EmbedItemsInMarcBiblio({
+            marc_record  => $record,
+            biblionumber => $biblionumber,
+            item_numbers => $itemnumbers });
         if ($only_export_items_for_branches && @$only_export_items_for_branches) {
             my %export_items_for_branches = map { $_ => 1 } @$only_export_items_for_branches;
             my ( $homebranchfield, $homebranchsubfield ) = GetMarcFromKohaField( 'items.homebranch', '' );    # Should be GetFrameworkCode( $biblionumber )?
