@@ -113,7 +113,8 @@ OPAC:
         -
             - "Show the following HTML when OpacMaintenance is enabled:"
             - pref: OpacMaintenanceNotice
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - By default, show bib records
@@ -162,6 +163,8 @@ OPAC:
                   yes: Include
                   no: "Don't include"
             - "COinS / OpenURL / Z39.88 in OPAC search results.  <br/>Warning: Enabling this feature will slow OPAC search response times."
+            - "<br/>If you want to display a link to an OpenURL resolver, look at the following system preferences:"
+            - "<br/><code>OpenURLResolverURL</code>, <code>OPACShowOpenURL</code>, <code>OPACOpenURLItemTypes</code>, <code>OpenURLText</code>, <code>OpenURLImageLocation</code>"
         -
             - pref: OPACShowUnusedAuthorities
               choices:
@@ -240,6 +243,7 @@ OPAC:
             - "Include the following JavaScript on all pages in the OPAC:"
             - pref: OPACUserJS
               type: textarea
+              syntax: javascript
               class: code
         -
             - Include the additional CSS stylesheet
@@ -255,57 +259,67 @@ OPAC:
             - "Include the following CSS on all pages in the OPAC:"
             - pref: OPACUserCSS
               type: textarea
+              syntax: css
               class: code
         -
             - "Show the following HTML in its own column on the main page of the OPAC:"
             - pref: OpacMainUserBlock
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Show the following HTML on the left hand column of the main page and patron account on the OPAC (generally navigation links):"
             - pref: OpacNav
-              type: htmlarea
-              class: code
-        -
-            - "Show the following HTML in the right hand column of the main page under the main login form:"
-            - pref: OpacNavRight
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Show the following HTML on the left hand column of the main page and patron account on the OPAC, after OpacNav, and before patron account links if available:"
             - pref: OpacNavBottom
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Include the following HTML in the header of all pages in the OPAC:"
             - pref: opacheader
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Include the following HTML in the footer of all pages in the OPAC:"
             - pref: opaccredits
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - 'Include a "More Searches" box on the detail pages of items on the OPAC, with the following HTML (leave blank to disable):'
             - '<br />Note: The placeholders {BIBLIONUMBER}, {CONTROLNUMBER}, {TITLE}, {ISBN}, {ISSN} and {AUTHOR} will be replaced with information from the displayed record.'
             - pref: OPACSearchForTitleIn
               type: textarea
+              syntax: text/html
+              class: code
+        -
+            - 'Add additional elements to the "More Searches" bar on the OPAC, with the following HTML (leave blank to disable):'
+            - pref: OpacMoreSearches
+              type: textarea
               class: code
         -
             - 'Include a "Links" column on the "my summary" and "my reading history" tabs when a user is logged in to the OPAC, with the following HTML (leave blank to disable):'
             - '<br />Note: The placeholders {BIBLIONUMBER}, {TITLE}, {ISBN} and {AUTHOR} will be replaced with information from the displayed record.'
             - pref: OPACMySummaryHTML
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
             - pref: OPACMySummaryNote
               type: textarea
+              syntax: text/html
         -
             - "Include the following HTML under the facets in OPAC search results:"
             - pref: OPACResultsSidebar
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - pref: OpacAddMastheadLibraryPulldown
@@ -317,7 +331,8 @@ OPAC:
             - 'Display this HTML when no results are found for a search in the OPAC:'
             - '<br />Note: You can insert placeholders {QUERY_KW} that will be replaced with the keywords of the query.'
             - pref: OPACNoResultsFound
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - 'Display the URI in the 856u field as an image on: '
@@ -373,12 +388,14 @@ OPAC:
         -
             - "Show the following HTML on the OPAC login form when a patron is not logged in:"
             - pref: OpacLoginInstructions
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - "Replace the search box at the top of OPAC pages with the following HTML:"
             - pref: OpacCustomSearch
               type: textarea
+              syntax: text/html
               class: code
         -
             - "Display language selector on "
@@ -578,7 +595,35 @@ OPAC:
             - "Use the following as the OPAC ISBD template:"
             - pref: OPACISBD
               type: textarea
+              syntax: text/html
               class: code
+    OpenURL:
+        -
+            - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'
+            - pref: OpenURLResolverURL
+              class: url
+        -
+            - 'Text of OpenURL links (or image title if OpenURLImageLocation is defined):'
+            - pref: OpenURLText
+        -
+            - 'Location of image for OpenURL links:'
+            - pref: OpenURLImageLocation
+              class: url
+            - '<br />Can be an absolute URL starting with <code>http://</code> or'
+            - '<code>https://</code> or a relative URL'
+            - '<br />Examples:'
+            - '<br />- <code>http://www.example.com/img/openurl.png</code>'
+            - '<br />- <code>/opac-tmpl/bootstrap/images/OpenURL.png</code>'
+        -
+            - pref: OPACShowOpenURL
+              choices:
+                  yes: Enable
+                  no: Disable
+            - 'display of OpenURL link in OPAC search results and detail page.'
+        -
+            - 'List of item type codes (separated by spaces) for those you want to show the OpenURL link:'
+            - pref: OPACOpenURLItemTypes
+            - '<br />'
     Policy:
         -
             - pref: SearchMyLibraryFirst
@@ -651,11 +696,12 @@ OPAC:
         -
             - pref: OpacHiddenItems
               type: textarea
+              syntax: text/x-yaml
               class: code
             - Define custom rules to hide specific items from search and view on the OPAC. How to write these rules is documented on the <a href="http://wiki.koha-community.org/wiki/OpacHiddenItems" target="_blank">Koha wiki</a>.
         -
             - pref: OpacHiddenItemsExceptions
-            - List of borrower categories, separated by |, that can see items otherwise hidden by <tt>OpacHiddenItems</tt>
+            - List of borrower categories, separated by |, that can see items otherwise hidden by <code>OpacHiddenItems</code>
         -
             - pref: OpacAllowPublicListCreation
               default: 1
@@ -723,6 +769,13 @@ OPAC:
                   no: "Don't allow"
             - patrons to choose their own privacy settings for showing the patron's checkouts to the patron's guarantor".
         -
+            - pref: AllowPatronToSetFinesVisibilityForGuarantor
+              default: 0
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - patrons to choose their own privacy settings for showing the patron's fines to the patron's guarantor".
+        -
             - Use borrowernumber
             - pref: AnonymousPatron
               class: integer
@@ -744,6 +797,7 @@ OPAC:
             - "HTML content of your restricted page"
             - pref: RestrictedPageContent
               type: textarea
+              syntax: text/html
               class: HTML
         -
             - Use
@@ -792,8 +846,8 @@ OPAC:
               choices:
                   yes: Require
                   no: "Don't require"
-            - "that a self-registering patron verify his or herself via email."
-            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/delete_unverified_opac_registrations.pl</code> cronjob. Ask your system administrator to schedule it."
+            - "that a self-registering patron verify themselves via email."
+            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it."
         -
             - "Use the patron category code"
             - pref: PatronSelfRegistrationDefaultCategory
@@ -804,7 +858,7 @@ OPAC:
             - pref: PatronSelfRegistrationExpireTemporaryAccountsDelay
               class: integer
             - "days."
-            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/delete_expired_opac_registrations.pl</code> cronjob. Ask your system administrator to schedule it."
+            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it."
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
             - pref: PatronSelfRegistrationBorrowerMandatoryField
@@ -823,7 +877,8 @@ OPAC:
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: html
         -
             - pref: PatronSelfRegistrationEmailMustBeUnique

@@ -158,7 +158,21 @@ Circulation:
                   no: "Don't allow"
             - patrons to submit notes about checked out items.
 
+    Accounts:
+        -
+            - pref: AccountAutoReconcile
+              choices:
+                  yes: "Do"
+                  no: "Do not"
+            - reconcile patron balances automatically on each transaction adding debits or credits.
+
     Checkout Policy:
+        -
+            - pref: AutoReturnCheckedOutItems
+              choices:
+                  yes: Don't
+                  no: Do
+            - require librarians to manually confirm a checkout where the item is already checked out to another patron.
         -
             - pref: AllowTooManyOverride
               choices:
@@ -184,11 +198,17 @@ Circulation:
                   no: "Don't allow"
             - staff to manually override renewal blocks and renew a checkout when it would go over the renewal limit or be premature with respect to the "No renewal before" setting in the circulation policy or has been scheduled for automatic renewal.
         -
+            - pref: AllowRenewalOnHoldOverride
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - staff to renew items that are on hold by manually specifying a due date.
+        -
             - pref: AllowItemsOnHoldCheckout
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - checkouts of items reserved to someone else. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items.
+            - checkouts of items reserved to someone else. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items. If using the holds queue items with pending holds will be marked as "unavailable" if this set to "Don't Allow".
         -
             - pref: AllowItemsOnHoldCheckoutSCO
               choices:
@@ -207,20 +227,6 @@ Circulation:
                   yes: Allow
                   no: "Don't allow"
             - staff to manually override and check out items to patrons who have more than noissuescharge in fines.
-        -
-            - pref: InProcessingToShelvingCart
-              choices:
-                  yes: Move
-                  no: "Don't move"
-            - items that have the location PROC to the location CART when they are checked in.
-            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cart_to_shelf.pl</code> cronjob. Ask your system administrator to schedule it."
-        -
-            - pref: ReturnToShelvingCart
-              choices:
-                  yes: Move
-                  no: "Don't move"
-            - all items to the location CART when they are checked in.
-            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cart_to_shelf.pl</code> cronjob. Ask your system administrator to schedule it."
         -
             - pref: AutomaticItemReturn
               choices:
@@ -257,8 +263,8 @@ Circulation:
             - pref: HomeOrHoldingBranch
               type: choice
               choices:
-                  homebranch: the library the item is from.
-                  holdingbranch: the library the item was checked out from.
+                  homebranch: the item's home library (homebranch).
+                  holdingbranch: the item's holding library (holdingbranch).
         -
             - Allow materials to be returned to
             - pref: AllowReturnToBranch
@@ -479,10 +485,11 @@ Circulation:
               choices:
                   yes: Block
                   no: Allow
-            - his/her auto renewals.
+            - their auto renewals.
         -
             - pref: ItemsDeniedRenewal
               type: textarea
+              syntax: text/x-yaml
               class: code
             - Define custom rules to deny specific items from renewal.
             - "<br />Can name any field in the items table followed by a colon then a space then"
@@ -524,8 +531,26 @@ Circulation:
             - calculate and update overdue charges when an item is returned.
             - "<br /><strong>NOTE: If you are doing hourly loans then you should have this on.</strong>"
         -
+            - pref: UpdateItemLocationOnCheckin
+              type: textarea
+              syntax: text/x-yaml
+              class: code
+            - "This is a list of value pairs. The first value is followed immediately by colon space then the second value.<br/><br/>"
+            - "Examples:<br/>"
+            - "PROC: FIC - causes an item in the Processing Center location to be updated into the Fiction location on check in.<br/>"
+            - "FIC: GEN - causes an item in the Fiction location to be updated into the General stacks location on check in.<br/>"
+            - "_BLANK_: FIC - causes an item that has no location to be updated into the Fiction location on check in.<br/>"
+            - "FIC: _BLANK_ - causes an item in location FIC to be updated to a blank location on check in.<br/>"
+            - "_ALL_: FIC - causes all items to be updated into the Fiction location on check in.<br/>"
+            - "PROC: _PERM_ - causes an item that is in the Processing Center to be updated to it's permanent location.<br/><br/>"
+            - "General rule: if the location value on the left of the colon (:) matches the item's current location, it will be updated to match the location value on the right of the colon (:).<br/>"
+            - "Note: PROC and CART are special values, for these locations only can location and permanent_location differ, in all other cases an update will affect both. Items in the CART location will be returned to their permanent location on checkout.<br/>"
+            - "The special term _BLANK_ may be used on either side of a value pair to update or remove the location from items with no location assigned.<br/>"
+            - "The special term _ALL_ is used on the left side of the colon (:) to affect all items, <strong>and overrides all other rules.</strong>"
+        -
             - pref: UpdateNotForLoanStatusOnCheckin
               type: textarea
+              syntax: text/x-yaml
               class: code
             - This is a list of value pairs. When an item is checked in, if the not for loan value on the left matches the items not for loan value
             - "it will be updated to the right-hand value. E.g. '-1: 0' will cause an item that was set to 'Ordered' to now be available for loan."
@@ -586,7 +611,7 @@ Circulation:
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - staff to force addition of holds even if the patron already has the maximum number of holds allowed.
+            - staff to override hold policies when placing holds.
         -
             - pref: AllowHoldsOnDamagedItems
               choices:
@@ -629,7 +654,7 @@ Circulation:
                   no: "Don't allow"
             - "holds to expire automatically if they have not been picked by within the time period specified in ReservesMaxPickUpDelay.<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/holds/cancel_expired_holds.pl</code> cronjob. Ask your system administrator to schedule it."
         -
-            - If using ExpireReservesMaxPickUpDelay, charge a borrower who allows his or her waiting hold to expire a fee of
+            - If using ExpireReservesMaxPickUpDelay, charge a borrower who allows their waiting hold to expire a fee of
             - pref: ExpireReservesMaxPickUpDelayCharge
               class: currency
         -
@@ -728,7 +753,7 @@ Circulation:
             - the reduction of loan period to
             - pref: decreaseLoanHighHoldsDuration
               class: integer
-            - days for items with more than
+            - days for high demand items with more than
             - pref: decreaseLoanHighHoldsValue
               class: integer
             - holds
@@ -787,6 +812,7 @@ Circulation:
             - 'Example: "itemlost: 1" to set items.itemlost to 1 when the item is marked as lost'
             - pref: UpdateItemWhenLostFromHoldList
               type: textarea
+              syntax: text/x-yaml
     Interlibrary Loans:
         -
             - pref: ILLModule
@@ -800,6 +826,19 @@ Circulation:
             - pref: ILLModuleCopyrightClearance
               type: textarea
               class: long
+        -
+            - "Enabled ILL backends for OPAC initiated requests:"
+            - pref: ILLOpacbackends
+              class: multi
+            - (separated with |). If left empty, all installed backends will be enabled.
+        -
+            - Allow unmediated Interlibrary loan requests
+            - pref: ILLModuleUnmediated
+              default: 0
+              choices:
+                  yes: Enable
+                  no: Disable
+            - unmediated Interlibrary loan requests. If enabled and the ILL backend supports it, the newly created requests are immediately requested by backend.
     Fines Policy:
         -
             - Calculate fines based on days overdue
@@ -862,11 +901,18 @@ Circulation:
             - pref: ProcessingFeeNote
               type: textarea
               class: code
+        -
+            - pref: FinePaymentAutoPopup
+              choices:
+                  yes: "Do"
+                  no: "Don't"
+            - automatically display a print dialog for a payment receipt when making a payment..
     Self check-in module:
         -
             - "Include the following HTML on the self check-in screen:"
             - pref: SelfCheckInMainUserBlock
               type: textarea
+              syntax: text/html
               class: code
         -
             - pref: SelfCheckInModule
@@ -883,27 +929,32 @@ Circulation:
             - "Include the following CSS on all the self check-in screens:"
             - pref: SelfCheckInUserCSS
               type: textarea
+              syntax: css
               class: code
         -
             - "Include the following JavaScript on all the self check-in screens:"
             - pref: SelfCheckInUserJS
               type: textarea
+              syntax: javascript
               class: code
     Self Checkout:
         -
             - "Include the following JavaScript on all pages in the web-based self checkout:"
             - pref: SCOUserJS
               type: textarea
+              syntax: javascript
               class: code
         -
             - "Include the following HTML on the the web-based self checkout screen:"
             - pref: SCOMainUserBlock
               type: textarea
+              syntax: text/html
               class: code
         -
             - "Include the following CSS on all pages in the web-based self checkout:"
             - pref: SCOUserCSS
               type: textarea
+              syntax: css
               class: code
         -
             - pref: ShowPatronImageInWebBasedSelfCheck
@@ -937,7 +988,8 @@ Circulation:
         -
             - "Include the following HTML in the Help page of the web-based self checkout system:"
             - pref: SelfCheckHelpMessage
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - pref: AutoSelfCheckAllowed
@@ -955,6 +1007,10 @@ Circulation:
                   yes: Show
                   no: "Don't show"
             - "the print receipt popup dialog when self checkout is finished"
+        -
+            - pref: SelfCheckAllowByIPRanges
+              class: short
+            - (Leave blank if not used. Use ranges or simple ip addresses separated by spaces, like <code>192.168.1.1 192.168.0.0/24</code>.)
     Course Reserves:
         -
             - pref: UseCourseReserves
@@ -987,12 +1043,6 @@ Circulation:
                   yes: Enable
                   no: Disable
             - "the stock rotation module"
-        -
-            - pref: RotationPreventTransfers
-              choices:
-                  yes: Disallow
-                  no: Allow
-            - "library transfers on items in stockrotation rotas"
     Article Requests:
         -
             - pref: ArticleRequests

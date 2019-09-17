@@ -16,7 +16,7 @@ Cataloging:
             - pref: EasyAnalyticalRecords
               choices:
                   yes: Display
-                  no: "Don't Display"
+                  no: "Don't display"
             - easy ways to create analytical record relationships
         -
             - pref: EnableAdvancedCatalogingEditor
@@ -105,8 +105,8 @@ Cataloging:
             - pref: autoBarcode
               choices:
                   incremental: generated in the form 1, 2, 3.
-                  annual: generated in the form &lt;year&gt;-0001, &lt;year&gt;-0002.
-                  hbyymmincr: generated in the form &lt;branchcode&gt;yymm0001.
+                  annual: generated in the form <year>-0001, <year>-0002.
+                  hbyymmincr: generated in the form <branchcode>yymm0001.
                   EAN13: incremental EAN-13 barcodes
                   "OFF": not generated automatically.
         -
@@ -210,6 +210,7 @@ Cataloging:
             - "Use the following as the staff ISBD template:"
             - pref: ISBD
               type: textarea
+              syntax: text/html
               class: code
         -
             - pref: OpacSuppression
@@ -286,6 +287,7 @@ Cataloging:
             - Include following fields when exporting BibTeX,
             - pref: BibtexExportAdditionalFields
               type: textarea
+              syntax: text/x-yaml
             - "Use one line per tag in the format BT_TAG: TAG$SUBFIELD ( e.g. lccn: 010$a )"
             - "<br/>"
             - "To specificy multiple marc tags/subfields as targets for a repeating BibTex tag, use the following format: BT_TAG: [TAG2$SUBFIELD1, TAG2$SUBFIELD2] ( e.g. notes: [501$a, 505$g] )"
@@ -294,9 +296,10 @@ Cataloging:
             - "<br/>"
             - "Use '@' ( with quotes ) as the BT_TAG to replace the bibtex record type with a field value of your choosing."
         -
-            - Include following fields when exporting RIS,
+            - Include following fields when exporting RIS
             - pref: RisExportAdditionalFields
               type: textarea
+              syntax: text/x-yaml
             - "Use one line per tag in the format RIS_TAG: TAG$SUBFIELD ( e.g. LC: 010$a )"
             - "<br/>"
             - "To specificy multiple marc tags/subfields as targets for a repeating RIS tag, use the following format: RIS_TAG: [TAG2$SUBFIELD1, TAG2$SUBFIELD2] ( e.g. NT: [501$a, 505$g] )"
