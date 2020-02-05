@@ -23,6 +23,7 @@ use C4::Context;
 
 use Koha::Database;
 use Koha::Exceptions::Config;
+use Koha::Exceptions::Elasticsearch;
 use Koha::SearchFields;
 use Koha::SearchMarcMaps;
 
@@ -302,6 +303,9 @@ sub reset_elasticsearch_mappings {
     my ( $self ) = @_;
     my $indexes = $self->_load_elasticsearch_mappings();
 
+    Koha::SearchMarcMaps->delete;
+    Koha::SearchFields->delete;
+
     while ( my ( $index_name, $fields ) = each %$indexes ) {
         while ( my ( $field_name, $data ) = each %$fields ) {
 
@@ -459,7 +463,7 @@ sub _process_mappings {
 
 =head2 marc_records_to_documents($marc_records)
 
-    my @record_documents = $self->marc_records_to_documents($marc_records);
+    my $record_documents = $self->marc_records_to_documents($marc_records);
 
 Using mappings stored in database convert C<$marc_records> to Elasticsearch documents.
 
@@ -628,8 +632,7 @@ sub marc_records_to_documents {
                 $record_document->{'marc_format'} = 'base64ISO2709';
             }
         }
-        my $id = $record->subfield('999', 'c');
-        push @record_documents, [$id, $record_document];
+        push @record_documents, $record_document;
     }
     return \@record_documents;
 }
@@ -860,7 +863,7 @@ which is terribly slow.
 sub _get_marc_mapping_rules {
     my ($self) = @_;
     my $marcflavour = lc C4::Context->preference('marcflavour');
-    my $field_spec_regexp = qr/^([0-9]{3})([()0-9a-z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
+    my $field_spec_regexp = qr/^([0-9]{3})([()0-9a-zA-Z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
     my $leader_regexp = qr/^leader(?:_\/(\d+(?:-\d+)?))?$/;
     my $rules = {
         'leader' => [],
@@ -877,6 +880,7 @@ sub _get_marc_mapping_rules {
 
         if ($type eq 'sum') {
             push @{$rules->{sum}}, $name;
+            push @{$rules->{sum}}, $name."__sort" if $sort;
         }
         elsif ($type eq 'isbn') {
             push @{$rules->{isbn}}, $name;
@@ -936,7 +940,6 @@ sub _get_marc_mapping_rules {
 
             my $range = defined $3 ? $3 : undef;
             my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range);
-
             if ($field_tag < 10) {
                 $rules->{control_fields}->{$field_tag} //= [];
                 push @{$rules->{control_fields}->{$field_tag}}, @mappings;
