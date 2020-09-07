@@ -4,18 +4,18 @@ package Koha::SearchEngine::Elasticsearch;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use base qw(Class::Accessor);
 
@@ -26,6 +26,9 @@ use Koha::Exceptions::Config;
 use Koha::Exceptions::Elasticsearch;
 use Koha::SearchFields;
 use Koha::SearchMarcMaps;
+use Koha::Caches;
+use C4::Heading;
+use C4::AuthoritiesMarc;
 
 use Carp;
 use Clone qw(clone);
@@ -43,7 +46,7 @@ use Encode qw(encode);
 use Business::ISBN;
 use Scalar::Util qw(looks_like_number);
 
-__PACKAGE__->mk_ro_accessors(qw( index ));
+__PACKAGE__->mk_ro_accessors(qw( index index_name ));
 __PACKAGE__->mk_accessors(qw( sort_fields ));
 
 # Constants to refer to the standard index names
@@ -62,7 +65,12 @@ Koha::SearchEngine::Elasticsearch - Base module for things using elasticsearch
 
 The name of the index to use, generally 'biblios' or 'authorities'.
 
+=item index_name
+
+The Elasticsearch index name with Koha instance prefix.
+
 =back
+
 
 =head1 FUNCTIONS
 
@@ -70,9 +78,14 @@ The name of the index to use, generally 'biblios' or 'authorities'.
 
 sub new {
     my $class = shift @_;
-    my $self = $class->SUPER::new(@_);
+    my ($params) = @_;
+
     # Check for a valid index
-    Koha::Exceptions::MissingParameter->throw('No index name provided') unless $self->index;
+    Koha::Exceptions::MissingParameter->throw('No index name provided') unless $params->{index};
+    my $config = _read_configuration();
+    $params->{index_name} = $config->{index_name} . '_' . $params->{index};
+
+    my $self = $class->SUPER::new(@_);
     return $self;
 }
 
@@ -88,8 +101,9 @@ instance level and will be reused if method is called multiple times.
 sub get_elasticsearch {
     my $self = shift @_;
     unless (defined $self->{elasticsearch}) {
-        my $conf = $self->get_elasticsearch_params();
-        $self->{elasticsearch} = Search::Elasticsearch->new($conf);
+        $self->{elasticsearch} = Search::Elasticsearch->new(
+            $self->get_elasticsearch_params()
+        );
     }
     return $self->{elasticsearch};
 }
@@ -119,37 +133,21 @@ This is configured by the following in the C<config> block in koha-conf.xml:
 sub get_elasticsearch_params {
     my ($self) = @_;
 
-    # Copy the hash so that we're not modifying the original
-    my $conf = C4::Context->config('elasticsearch');
-    die "No 'elasticsearch' block is defined in koha-conf.xml.\n" if ( !$conf );
-    my $es = { %{ $conf } };
+    my $conf;
+    try {
+        $conf = _read_configuration();
+    } catch {
+        if ( ref($_) eq 'Koha::Exceptions::Config::MissingEntry' ) {
+            croak($_->message);
+        }
+    };
+    # Extract relevant parts of configuration
+    my $params = {
+        nodes => $conf->{nodes}
+    };
+    $params->{cxn_pool} //= 'Static';
 
-    # Helpfully, the multiple server lines end up in an array for us anyway
-    # if there are multiple ones, but not if there's only one.
-    my $server = $es->{server};
-    delete $es->{server};
-    if ( ref($server) eq 'ARRAY' ) {
-
-        # store it called 'nodes' (which is used by newer Search::Elasticsearch)
-        $es->{nodes} = $server;
-    }
-    elsif ($server) {
-        $es->{nodes} = [$server];
-    }
-    else {
-        die "No elasticsearch servers were specified in koha-conf.xml.\n";
-    }
-    die "No elasticsearch index_name was specified in koha-conf.xml.\n"
-      if ( !$es->{index_name} );
-    # Append the name of this particular index to our namespace
-    $es->{index_name} .= '_' . $self->index;
-
-    $es->{key_prefix} = 'es_';
-    $es->{client} //= '5_0::Direct';
-    $es->{cxn_pool} //= 'Static';
-    $es->{request_timeout} //= 60;
-
-    return $es;
+    return $params;
 }
 
 =head2 get_elasticsearch_settings
@@ -239,11 +237,66 @@ sub get_elasticsearch_mappings {
                 }
             }
         );
+        $mappings->{data}{properties}{ 'match-heading' } = _get_elasticsearch_field_config('search', 'text') if $self->index eq 'authorities';
         $all_mappings{$self->index} = $mappings;
     }
     $self->sort_fields(\%{$sort_fields{$self->index}});
-
     return $all_mappings{$self->index};
+}
+
+=head2 raw_elasticsearch_mappings
+
+Return elasticsearch mapping as it is in database.
+marc_type: marc21|unimarc|normarc
+
+$raw_mappings = raw_elasticsearch_mappings( $marc_type )
+
+=cut
+
+sub raw_elasticsearch_mappings {
+    my ( $marc_type ) = @_;
+
+    my $schema = Koha::Database->new()->schema();
+
+    my $search_fields = Koha::SearchFields->search({}, { order_by => { -asc => 'name' } });
+
+    my $mappings = {};
+    while ( my $search_field = $search_fields->next ) {
+
+        my $marc_to_fields = $schema->resultset('SearchMarcToField')->search(
+            { search_field_id => $search_field->id },
+            {
+                join     => 'search_marc_map',
+                order_by => { -asc => ['search_marc_map.marc_type','search_marc_map.marc_field'] }
+            }
+        );
+
+        while ( my $marc_to_field = $marc_to_fields->next ) {
+
+            my $marc_map = $marc_to_field->search_marc_map;
+
+            next if $marc_type && $marc_map->marc_type ne $marc_type;
+
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{label} = $search_field->label;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{type} = $search_field->type;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{facet_order} = $search_field->facet_order if defined $search_field->facet_order;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{weight} = $search_field->weight if defined $search_field->weight;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{opac} = $search_field->opac if defined $search_field->opac;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{staff_client} = $search_field->staff_client if defined $search_field->staff_client;
+
+            push (@{ $mappings->{ $marc_map->index_name }{ $search_field->name }{mappings} },
+                {
+                    facet   => $marc_to_field->facet || '',
+                    marc_type => $marc_map->marc_type,
+                    marc_field => $marc_map->marc_field,
+                    sort        => $marc_to_field->sort,
+                    suggestible => $marc_to_field->suggestible || ''
+                });
+
+        }
+    }
+
+    return $mappings;
 }
 
 =head2 _get_elasticsearch_field_config
@@ -331,6 +384,10 @@ sub reset_elasticsearch_mappings {
             }
         }
     }
+
+    $self->clear_search_fields_cache();
+
+    # FIXME return the mappings?
 }
 
 # This overrides the accessor provided by Class::Accessor so that if
@@ -481,8 +538,26 @@ sub marc_records_to_documents {
 
     my @record_documents;
 
+    my %auth_match_headings;
+    if( $self->index eq 'authorities' ){
+        my @auth_types = Koha::Authority::Types->search();
+        %auth_match_headings = map { $_->authtypecode => $_->auth_tag_to_report } @auth_types;
+    }
+
     foreach my $record (@{$records}) {
         my $record_document = {};
+
+        if ( $self->index eq 'authorities' ){
+            my $authtypecode = GuessAuthTypeCode( $record );
+            if( $authtypecode ){
+                my $field = $record->field( $auth_match_headings{ $authtypecode } );
+                my $heading = C4::Heading->new_from_field( $field, undef, 1 ); #new auth heading
+                push @{$record_document->{'match-heading'}}, $heading->search_form if $heading;
+            } else {
+                warn "Cannot determine authority type for record: " . $record->field('001')->as_string;
+            }
+        }
+
         my $mappings = $rules->{leader};
         if ($mappings) {
             $self->_process_mappings($mappings, $record->leader(), $record_document, {
@@ -516,7 +591,6 @@ sub marc_records_to_documents {
                 }
 
                 my $data_field_rules = $data_fields_rules->{$tag};
-
                 if ($data_field_rules) {
                     my $subfields_mappings = $data_field_rules->{subfields};
                     my $wildcard_mappings = $subfields_mappings->{'*'};
@@ -744,7 +818,7 @@ sub _array_to_marc {
     my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range)
 
 Get mappings, an internal data structure later used by
-L<_process_mappings($mappings, $data, $record_document, $altscript)> to process MARC target
+L<_process_mappings($mappings, $data, $record_document, $meta)> to process MARC target
 data for a MARC mapping.
 
 The returned C<$mappings> is not to to be confused with mappings provided by
@@ -996,8 +1070,8 @@ sub _get_marc_mapping_rules {
         if ($self->index eq $Koha::SearchEngine::BIBLIOS_INDEX) {
             # Format is: nonfiling characters indicator => field names list
             %title_fields = (
-                1 => [630, 730, 740],
-                2 => [130, 222, 240, 242, 243, 440, 830]
+                1 => [130, 630, 730, 740],
+                2 => [222, 240, 242, 243, 245, 440, 830]
             );
         }
         elsif ($self->index eq $Koha::SearchEngine::AUTHORITIES_INDEX) {
@@ -1071,7 +1145,6 @@ A string that indicates the MARC type that this mapping is for, e.g. 'marc21',
 =item C<$marc_field>
 
 A string that describes the MARC field that contains the data to extract.
-These are of a form suited to Catmandu's MARC fixers.
 
 =back
 
@@ -1175,9 +1248,11 @@ sub _read_configuration {
     my $configuration;
 
     my $conf = C4::Context->config('elasticsearch');
-    Koha::Exceptions::Config::MissingEntry->throw(
-        "Missing 'elasticsearch' block in config file")
-      unless defined $conf;
+    unless ( defined $conf ) {
+        Koha::Exceptions::Config::MissingEntry->throw(
+            "Missing <elasticsearch> entry in koha-conf.xml"
+        );
+    }
 
     if ( $conf && $conf->{server} ) {
         my $nodes = $conf->{server};
@@ -1190,7 +1265,8 @@ sub _read_configuration {
     }
     else {
         Koha::Exceptions::Config::MissingEntry->throw(
-            "Missing 'server' entry in config file for elasticsearch");
+            "Missing <elasticsearch>/<server> entry in koha-conf.xml"
+        );
     }
 
     if ( defined $conf->{index_name} ) {
@@ -1198,7 +1274,8 @@ sub _read_configuration {
     }
     else {
         Koha::Exceptions::Config::MissingEntry->throw(
-            "Missing 'index_name' entry in config file for elasticsearch");
+            "Missing <elasticsearch>/<index_name> entry in koha-conf.xml",
+        );
     }
 
     return $configuration;
@@ -1226,6 +1303,24 @@ sub get_facetable_fields {
     );
     # This could certainly be improved
     return ( @faceted_fields, @not_faceted_fields );
+}
+
+=head2 clear_search_fields_cache
+
+Koha::SearchEngine::Elasticsearch->clear_search_fields_cache();
+
+Clear cached values for ES search fields
+
+=cut
+
+sub clear_search_fields_cache {
+
+    my $cache = Koha::Caches->get_instance();
+    $cache->clear_from_cache('elasticsearch_search_fields_staff_client_biblios');
+    $cache->clear_from_cache('elasticsearch_search_fields_opac_biblios');
+    $cache->clear_from_cache('elasticsearch_search_fields_staff_client_authorities');
+    $cache->clear_from_cache('elasticsearch_search_fields_opac_authorities');
+
 }
 
 1;
