@@ -558,12 +558,8 @@ RECORD: foreach my $record (@{$marc_records}) {
                     $biblioitemnumber = Koha::Biblios->find( $matched_record_id )->biblioitem->biblioitemnumber;
                 };
                 if ($update) {
-<<<<<<<
-                    eval { ModBiblio( $record, $biblionumber, GetFrameworkCode($biblionumber), {context => {source => 'bulkmarcimport'}} ) };
-=======
                     my $success;
                     eval { $success = ModBiblio($record, $matched_record_id, GetFrameworkCode($matched_record_id), $modify_biblio_marc_options) };
->>>>>>>
                     if ($@) {
                         warn "ERROR: Edit biblio $matched_record_id failed: $@\n";
                         printlog( { id => $matched_record_id, op => "update", status => "ERROR" } ) if ($logfile);

@@ -1,6 +1,12 @@
 Circulation:
     Interface:
         -
+          - pref: HideCircReports
+            choices:
+              yes: Hide
+              no: Show
+          - hide the circulation reports on all Circulation pages.
+        -
             - pref: CircSidebar
               choices:
                   yes: Activate
@@ -526,17 +532,27 @@ Circulation:
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /> Note: the word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
         -
+            - pref: AllowIssueWhenReserved
+              choices:
+                  yes: "Allow it"
+                  no: "Don't allow it"
+            - Allow issue when reserved.
+    Checkin policy:
+        -
             - Use message preferences based on
             - pref: UsePatronPreferencesForOverdue
               choices:
                   yes: individual patron preference
                   no: patron category
             - when sending overdue notices.
+<<<<<<<
+=======
         -
             - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
             - pref: BypassOnSiteCheckoutConfirmaition
             - (Separated by pipe -3|-2|-1)
     Checkin Policy:
+>>>>>>>
         -
             - pref: TrapHoldsOnOrder
               choices:
@@ -638,20 +654,34 @@ Circulation:
                   no: "Don't store"
             - the last patron to return an item. This setting is independent of opacreadinghistory/AnonymousPatron.
         -
-<<<<<<<
+            - pref: TriggerWaitingOnSIPReturn
+              choices:
+                  yes: Trigger
+                  no: Do not trigger
+            - hold on pickup library on checkin via SIP. (Not triggering means no message is sent.)
+        -
+            - NOT_LOAN values that should NOT trigger reserves:
+            - pref: PreventNotLoanFromHoldResolve
+            - (Separated by pipe -3|-2|-1)
+        -
+            - pref: ODueDebarmentRemovalAllowUnrestricted
+              choices:
+                  yes: Allow
+                  no: Do not allow
+            - removal of Overdue debarments when patron has overdue items but none are old enough to have reached restricting delay. Used in combination with AutoRemoveOverduesRestrictions.
+        -
+            - pref: SipNoAlertForAvailable
+              choices:
+                  yes: Do not set alert
+                  no: Set alert
+            - for returned books that are not issued.
+        -
             - Use
             - pref: UseLocationAsAQInSIP
               choices:
                   yes: permanent_location
                   no: homebranch
             - for AQ field in SIP protocol.
-=======
-            - pref: ShowRefundLostItemFeeMessage
-              choices:
-                  yes: Enable
-                  no: Disable
-            - When disabled, the lost item fee refund message is hidden.
->>>>>>>
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by

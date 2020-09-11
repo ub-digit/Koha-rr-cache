@@ -1,6 +1,12 @@
 Circulation:
     Interface:
         -
+          - pref: HideCircReports
+            choices:
+              yes: Hide
+              no: Show
+          - hide the circulation reports on all Circulation pages.
+        -
             - pref: CircSidebar
               choices:
                   yes: Activate
@@ -525,18 +531,7 @@ Circulation:
             - "<br />ccode: [NEWFIC,NULL,DVD]"
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /> Note: the word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
-        -
-            - Use message preferences based on
-            - pref: UsePatronPreferencesForOverdue
-              choices:
-                  yes: individual patron preference
-                  no: patron category
-            - when sending overdue notices.
-        -
-            - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
-            - pref: BypassOnSiteCheckoutConfirmaition
-            - (Separated by pipe -3|-2|-1)
-    Checkin Policy:
+    Checkin policy:
         -
             - pref: TrapHoldsOnOrder
               choices:
@@ -638,20 +633,15 @@ Circulation:
                   no: "Don't store"
             - the last patron to return an item. This setting is independent of opacreadinghistory/AnonymousPatron.
         -
-<<<<<<<
-            - Use
-            - pref: UseLocationAsAQInSIP
+            - pref: TriggerWaitingOnSIPReturn
               choices:
-                  yes: permanent_location
-                  no: homebranch
-            - for AQ field in SIP protocol.
-=======
-            - pref: ShowRefundLostItemFeeMessage
-              choices:
-                  yes: Enable
-                  no: Disable
-            - When disabled, the lost item fee refund message is hidden.
->>>>>>>
+                  yes: Trigger
+                  no: Do not trigger
+            - hold on pickup library on checkin via SIP. (Not triggering means no message is sent.)
+        -
+            - NOT_LOAN values that should NOT trigger reserves:
+            - pref: PreventNotLoanFromHoldResolve
+            - (Separated by pipe -3|-2|-1)
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by

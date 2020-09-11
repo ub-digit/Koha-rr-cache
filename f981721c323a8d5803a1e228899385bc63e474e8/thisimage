@@ -47,7 +47,7 @@ OPAC:
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
-                  holdingbranch: "current location"
+                  holdingbranch: "current library"
                   homebranch: "home library"
             - . Please note that this feature is currently available for MARC21 and UNIMARC.
         -
@@ -77,7 +77,8 @@ OPAC:
               choices:
                   yes: Enable
                   no: Disable
-            - "Koha OPAC as public. Private OPAC requires authentication before accessing the OPAC."
+            - "Koha OPAC as public. Private OPAC requires authentication before accessing the OPAC. "
+            - "Note: This doesn't affect the public API, see the <code>RESTPublicAnonymousRequests</code> to control the API."
         -
             - pref: HighlightOwnItemsOnOPAC
               choices:
@@ -93,7 +94,7 @@ OPAC:
             - "Show star-ratings on"
             - pref: OpacStarRatings
               choices:
-                  all: "results and details"
+                  all: "results, details, and user"
                   disable: "no"
                   details: "only details"
             - "pages."
@@ -103,7 +104,6 @@ OPAC:
                   yes: Show
                   no: "Don't show"
             - "a warning that the OPAC is under maintenance, instead of the OPAC itself. Note: this shows the same warning as when the database needs to be upgraded, but unconditionally."
-        -
         -
             - "Show the following HTML when OpacMaintenance is enabled:"
             - pref: OpacMaintenanceNotice
@@ -146,11 +146,18 @@ OPAC:
               class: file
             - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default one</li><li>put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language'
         -
+            - "Show itemtype icons in the OPAC: "
+            - pref: OpacNoItemTypeImages
+              default: 0
+              choices:
+                  yes: "No"
+                  no: "Yes"
+        -
             - pref: DisplayOPACiconsXSLT
               choices:
                   yes: Show
                   no: "Don't show"
-            - the format, audience, and material type icons in XSLT MARC21 results and detail pages in the OPAC.
+            - the format, audience, and material type icons and descriptions in XSLT MARC21 results and detail pages in the OPAC.
         -
             - pref: COinSinOPACResults
               choices:
@@ -227,13 +234,6 @@ OPAC:
                   no: "Don't show"
             - a link to recent comments in the OPAC masthead.
         -
-            - pref: GoogleIndicTransliteration
-              default: 0
-              choices:
-                  yes: Show
-                  no: "Don't show"
-            - GoogleIndicTransliteration on the OPAC.
-        -
             - pref: OpacHighlightedWords
               choices:
                   yes: Highlight
@@ -270,12 +270,6 @@ OPAC:
               syntax: css
               class: code
         -
-            - "Show the following HTML in its own column on the main page of the OPAC:"
-            - pref: OpacMainUserBlock
-              type: textarea
-              syntax: text/html
-              class: code
-        -
             - "Show the following HTML on the left hand column of the main page and patron account on the OPAC (generally navigation links):"
             - pref: OpacNav
               type: textarea
@@ -284,18 +278,6 @@ OPAC:
         -
             - "Show the following HTML on the left hand column of the main page and patron account on the OPAC, after OpacNav, and before patron account links if available:"
             - pref: OpacNavBottom
-              type: textarea
-              syntax: text/html
-              class: code
-        -
-            - "Include the following HTML in the header of all pages in the OPAC:"
-            - pref: opacheader
-              type: textarea
-              syntax: text/html
-              class: code
-        -
-            - "Include the following HTML in the footer of all pages in the OPAC:"
-            - pref: opaccredits
               type: textarea
               syntax: text/html
               class: code
@@ -394,18 +376,6 @@ OPAC:
               class: integer
             - items on the bibliographic record detail page (if the bibliographic record has more items than this, a link is displayed instead that allows the user to choose to display all items).
         -
-            - "Show the following HTML on the OPAC login form when a patron is not logged in:"
-            - pref: OpacLoginInstructions
-              type: textarea
-              syntax: text/html
-              class: code
-        -
-            - "Replace the search box at the top of OPAC pages with the following HTML:"
-            - pref: OpacCustomSearch
-              type: textarea
-              syntax: text/html
-              class: code
-        -
             - "Display language selector on "
             - pref: OpacLangSelectorMode
               choices:
@@ -420,6 +390,14 @@ OPAC:
             - "Show syndetics cover images in OPAC"
     Features:
         -
+            - pref: OPACReportProblem
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - patrons to submit problem reports for OPAC pages to the library or Koha Administrator.
+            - "<br/>"
+            - "<strong>NOTE:</strong> You must have KohaAdminEmailAddress enabled."
+        -
             - pref: opacuserlogin
               choices:
                   yes: Allow
@@ -429,9 +407,10 @@ OPAC:
             - Show
             - pref: OpacItemLocation
               choices:
-                  location: location
-                  ccode: "collection code"
-                  callnum: "call number only"
+                  location: "library, location, and call number"
+                  ccode: "library, collection code, and call number"
+                  callnum: "library and call number"
+                  library: "only library"
             - for items on the OPAC search results.
         -
             - pref: OpacPasswordChange
@@ -447,12 +426,6 @@ OPAC:
                   yes: "allowed"
                   no: "not allowed"
             - " to recover their password via e-mail in the OPAC"
-        -
-            - pref: OPACPatronDetails
-              choices:
-                  yes: Allow
-                  no: "Don't allow"
-            - patrons to notify the library of changes to their contact information from the OPAC.
         -
             - pref: OPACpatronimages
               choices:
@@ -561,12 +534,12 @@ OPAC:
                   no: Disable
             - browsing and paging search results from the OPAC detail page.
         -
+            - Show quote of the day in the
             - pref: QuoteOfTheDay
-              default: 0
-              choices:
-                  yes: Enable
-                  no: Disable
-            - Quote of the Day display on OPAC home page
+              multiple:
+                intranet: staff interface
+                opac: OPAC
+            - main page.
         -
             - pref: OPACPopupAuthorsSearch
               default: 0
@@ -608,6 +581,13 @@ OPAC:
               type: textarea
               syntax: text/html
               class: code
+        -
+            - pref: OpacBrowseSearch
+              default: 0
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "(Elasticsearch only) Enable the interface allowing to browse all holdings."
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'
@@ -667,7 +647,7 @@ OPAC:
                   itemhomebranch: "the item's home library"
                   patronhomebranch: "the patron's home library"
                   checkoutbranch: "the library the item was checked out from"
-                  null: "NULL"
+                  none: "NULL"
                   opacrenew: "'OPACRenew'"
             - as branchcode to store in the statistics table.
         -
@@ -744,14 +724,15 @@ OPAC:
             - pref: MaxOpenSuggestions
               class: integer
             - "open suggestions. Leave empty for no limit. **Note: this setting does not affect anonymous suggestions"
-    Privacy:
         -
-            - pref: StoreLastBorrower
-              default: 0
-              choices:
-                  yes: Store
-                  no: "Don't store"
-            - the last patron to return an item. This setting is independent of opacreadinghistory/AnonymousPatron.
+            - Number of total suggestions allowed
+            - pref: MaxTotalSuggestions
+              class: integer
+            - "in"
+            - pref: NumberOfSuggestionDays
+              class: integer
+            - "days."
+    Privacy:
         -
             - pref: AnonSuggestions
               choices:
@@ -821,7 +802,7 @@ OPAC:
             - pref: RestrictedPageTitle
               class: long
             - "as title of your restricted page (appears in the breadcrumb and on the top of the restricted page)"
-    Shelf Browser:
+    Shelf browser:
         -
             - pref: OPACShelfBrowser
               choices:
@@ -850,13 +831,13 @@ OPAC:
                   no: "Don't use"
             - "the item collection code when finding items for the shelf browser."      
 
-    Self Registration:
+    Self registration and modification:
         -
             - pref: PatronSelfRegistration
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - "library patrons to register or modify their account via the OPAC."
+            - "library patrons to register for an account via the OPAC."
             - "<br><strong>NOTE:</strong> This needs PatronSelfRegistrationDefaultCategory to be set to a valid patron category code."
         -
             - pref: PatronSelfRegistrationVerifyByEmail
@@ -871,26 +852,26 @@ OPAC:
               class: short
             - "as the default patron category for patrons registered via the OPAC."
         -
-            - "Delete patrons registered via the OPAC, but not yet verified after"
+            - "Delete patrons still in the category indicated by PatronSelfRegistrationDefaultCategory"
             - pref: PatronSelfRegistrationExpireTemporaryAccountsDelay
               class: integer
-            - "days."
+            - "days after account creation."
             - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it."
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
             - pref: PatronSelfRegistrationBorrowerMandatoryField
-              class: multi
-            - (separate columns with |)
+              type: modalselect
+              source: borrowers
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
             - pref: PatronSelfRegistrationBorrowerUnwantedField
-              class: multi
-            - (separate columns with |)
+              type: modalselect
+              source: borrowers
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
             - pref: PatronSelfModificationBorrowerUnwantedField
-              class: multi
-            - (separate columns with |)
+              type: modalselect
+              source: borrowers
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
@@ -914,8 +895,20 @@ OPAC:
                   yes: "Display and prefill"
                   no: "Do not display and prefill"
             - "password and login form after a patron has self registered."
+        -
+            - pref: PatronSelfRegistrationConfirmEmail
+              choices:
+                  yes: Require
+                  no: "Do not require"
+            - users to confirm their email address by entering it twice.
+        -
+            - pref: OPACPatronDetails
+              choices:
+                  yes: Allow
+                  no: "Don't allow"
+            - patrons to notify the library of changes to their contact information from the OPAC.
 
-    Advanced Search Options:
+    Advanced search options:
         -
             - Show search options
             - pref: OpacAdvSearchOptions
