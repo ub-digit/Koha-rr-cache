@@ -213,9 +213,9 @@ $( document ).ready(function() {
         return "Gpek";
     }
 
-    function getFullTitle() {
-        var title = $(this).attr('data-title') ? $(this).attr('data-title') : '';
-        var subtitle = $(this).attr('data-subtitle') ? $(this).attr('data-subtitle') : '';
+    function getFullTitle(row) {
+        var title = $(row).attr('data-title') ? $(row).attr('data-title') : '';
+        var subtitle = $(row).attr('data-subtitle') ? $(row).attr('data-subtitle') : '';
         var fullTitle = title + subtitle;
         if (fullTitle === '' || fullTitle === ' ' || fullTitle === undefined) {
             if (getLang() === "en-US") {
@@ -226,14 +226,15 @@ $( document ).ready(function() {
         return fullTitle;
     }
 
-    function getBarcode() {
-        var barcode = $(this).attr('data-barcode') ? $(this).attr('data-barcode') : '';
+    function getBarcode(row) {
+        var barcode = $(row).attr('data-barcode') ? $(row).attr('data-barcode') : '';
         if (barcode === '') {
              if (getLang() === "en-US") {
                  return "barcode missing";
              }
              return "streckkod saknas";
         }
+        return barcode;
     }
 
     function zeroPaymentsSelected() {
@@ -290,8 +291,8 @@ $( document ).ready(function() {
                 library_group       :       getLibraryGroup($(this).attr('data-library-code'),  $(this).attr('data-item-itype')),  // ITEM.ITYPES
                 debit_type          :       getSimpleDebitType($(this).attr('data-payment-type')),
                 debit_title         :       getPaymentName($(this).attr('data-payment-type')),
-                text                :       getBarcode(),
-                title               :       getFullTitle(),
+                text                :       getBarcode(this),
+                title               :       getFullTitle(this),
             }
             payments.push(paymentRow);
         });
