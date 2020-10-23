@@ -113,6 +113,14 @@ $( document ).ready(function() {
     let paydata = {};
     let returnURL = window.location.href + "?language=" + getLang();
     let callbackURL = "[% staffClientBaseURL %]" + "/cgi-bin/koha/svc/onlinepayment";  // window.location.href;
+
+    function getAmountPayable(payments) {
+        var amounts = payments.map(o => {return o['amount']});
+        if (amounts.length) {
+            return amounts.reduce((total, num) => total + num);
+        }
+        return 0;
+    }
 =======
     var fines_table = $("#finestable").dataTable($.extend(true, {}, dataTablesDefaults, {
         "columnDefs": [
@@ -142,14 +150,6 @@ $( document ).ready(function() {
     });
     */
 >>>>>>>
-
-    function getAmountPayable(payments) {
-        var amounts = payments.map(o => {return o['amount']});
-        if (amounts.length) {
-            return amounts.reduce((total, num) => total + num);
-        }
-        return 0;
-    }
 
 
     function getDebtTotal() {
@@ -338,21 +338,21 @@ $( document ).ready(function() {
     [% UNLESS ( UBOnlinePayment.isExcludedFromOnlinePayment) %]
          //$(".account-line-checkbox").trigger("change");
       //  $(".account-line-checkbox:not(:disabled)").prop("checked", true).trigger("change");
-        if (getLang() === "en-US") {
-            $("#no-online-payment-link.en-US").show();
-            $("#no-online-payment-link.sv-SE").hide();
-            $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").show();
-            $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").hide();
-        }
-        else {
-            $("#no-online-payment-link.sv-SE").show();
-             $("#no-online-payment-link.en-US").hide();
-            $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").hide();
-            $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").show();
-        }
     [% ELSE %]
         $("#check-all-payable").prop("disabled", true);
     [% END %]
+    if (getLang() === "en-US") {
+        $("#no-online-payment-link.en-US").show();
+        $("#no-online-payment-link.sv-SE").hide();
+        $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").show();
+        $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").hide();
+    }
+    else {
+        $("#no-online-payment-link.sv-SE").show();
+        $("#no-online-payment-link.en-US").hide();
+        $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").hide();
+        $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").show();
+    }
 
     var fines_table = $("#finestable").dataTable($.extend(true, {}, dataTablesDefaults, {
         [% IF UBOnlinePayment.Active() %]
