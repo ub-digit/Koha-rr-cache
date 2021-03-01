@@ -87,6 +87,8 @@
                                     <textarea  id="ub-debug-json" type="hidden" name="payment_data" style="width:80%; min-height:400px; display:none;"></textarea>
                                 </form>
                             </div>
+                            <p id="no-online-payment-info" class="en-US"> If you return the book, the replacement fee will automatically disappear. You will still have to pay the overdue fines.</p>
+                            <p id="no-online-payment-info" class="sv-SE"> If you return the book, the replacement fee will automatically disappear. You will still have to pay the overdue fines.</p>
                             [% END %]
                         [% END %]
                         <p id="no-online-payment-link" class="en-US"><a href="[% UBOnlinePayment.ExternalInfoURLEn() %]">More information about loans and fines</a></p>
@@ -144,9 +146,9 @@ $( document ).ready(function() {
 >>>>>>>
 
     function getAmountPayable(payments) {
-        var amounts = payments.map(o => {return o['amount']});
+        var amounts = payments.map(function(o)  {return o['amount']});
         if (amounts.length) {
-            return amounts.reduce((total, num) => total + num);
+            return amounts.reduce(function(total, num) {return total + num});
         }
         return 0;
     }
@@ -200,7 +202,19 @@ $( document ).ready(function() {
 
         }
         let librarygroup = null;
-        var found = Object.entries(branches).some((item) => {
+        // polyfill for IE https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/entries
+        if (!Object.entries) {
+        Object.entries = function( obj ){
+            var ownProps = Object.keys( obj ),
+                i = ownProps.length,
+                resArray = new Array(i); // preallocate the Array
+            while (i--)
+            resArray[i] = [ownProps[i], obj[ownProps[i]]];
+
+            return resArray;
+        };
+        }
+        var found = Object.entries(branches).some(function(item) {
             return item[1].some(function(el) {
                 if (el === parseInt(id)) {
                     librarygroup = item[0];
@@ -338,21 +352,25 @@ $( document ).ready(function() {
     [% UNLESS ( UBOnlinePayment.isExcludedFromOnlinePayment) %]
          //$(".account-line-checkbox").trigger("change");
       //  $(".account-line-checkbox:not(:disabled)").prop("checked", true).trigger("change");
-        if (getLang() === "en-US") {
-            $("#no-online-payment-link.en-US").show();
-            $("#no-online-payment-link.sv-SE").hide();
-            $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").show();
-            $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").hide();
-        }
-        else {
-            $("#no-online-payment-link.sv-SE").show();
-             $("#no-online-payment-link.en-US").hide();
-            $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").hide();
-            $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").show();
-        }
     [% ELSE %]
         $("#check-all-payable").prop("disabled", true);
     [% END %]
+    if (getLang() === "en-US") {
+        $("#no-online-payment-info.en-US").show();
+        $("#no-online-payment-info.sv-SE").hide();
+        $("#no-online-payment-link.en-US").show();
+        $("#no-online-payment-link.sv-SE").hide();
+        $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").show();
+        $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").hide();
+    }
+    else {
+        $("#no-online-payment-info.en-US").hide();
+        $("#no-online-payment-info.sv-SE").show();
+        $("#no-online-payment-link.sv-SE").show();
+        $("#no-online-payment-link.en-US").hide();
+        $(".amount-debt-left-after-payment.en-US, .amount-payable.en-US").hide();
+        $(".amount-debt-left-after-payment.sv-SE, .amount-payable.sv-SE").show();
+    }
 
     var fines_table = $("#finestable").dataTable($.extend(true, {}, dataTablesDefaults, {
         [% IF UBOnlinePayment.Active() %]

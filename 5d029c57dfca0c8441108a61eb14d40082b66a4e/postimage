@@ -330,10 +330,6 @@
                         <span class="label">Previous borrower:</span> <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower2 | uri %]">[% ITEM_DAT.card2 | html %]</a>&nbsp;
                         </li>
                 [% END %]
-                [% IF ( ITEM_DAT.card0 ) %]<li><span class="label">Last borrower:</span> <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower0 | uri %]">[% ITEM_DAT.card0 | html %]</a>&nbsp;</li>[% END %]
-                [% IF ( ITEM_DAT.card1 ) %]<li><span class="label">Previous borrower:</span> <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower1 | uri %]">[% ITEM_DAT.card1 | html %]</a>&nbsp;</li>[% END %]
-                [% IF ( ITEM_DAT.card2 ) %]<li><span class="label">Previous borrower:</span> <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower2 | uri %]">[% ITEM_DAT.card2 | html %]</a>&nbsp;</li>[% END %]
-                
                 <!--
                     GU KOHA-1528: Remove 'paid for' field in accordance with GDPR
                 -->
