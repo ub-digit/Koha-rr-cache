@@ -552,16 +552,18 @@ Circulation:
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /> <strong>NOTE:</strong> The word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
         -
+<<<<<<<
+            - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
+            - pref: BypassOnSiteCheckoutConfirmaition
+            - (Separated by pipe -3|-2|-1)
+=======
             - Use message preferences based on
             - pref: UsePatronPreferencesForOverdue
               choices:
                   yes: individual patron preference
                   no: patron category
             - when sending overdue notices.i
-        -
-            - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
-            - pref: BypassOnSiteCheckoutConfirmaition
-            - (Separated by pipe -3|-2|-1)
+>>>>>>>
     Checkin Policy:
         -
             - pref: TrapHoldsOnOrder
@@ -669,27 +671,7 @@ Circulation:
                   1: Store
                   0: "Don't store"
             - 'the last patron to return an item. This setting is independent of the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=opacreadinghistory">opacreadinghistory</a> and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preferences.'
-        -
-            - pref: ODueDebarmentRemovalAllowUnrestricted
-              choices:
-                  yes: Allow
-                  no: Do not allow
-            - removal of Overdue debarments when patron has overdue items but none are old enough to have reached restricting delay. Used in combination with AutoRemoveOverduesRestrictions.
-        -
-            - pref: ShowRefundLostItemFeeMessage
-              choices:
-                  yes: Enable
-                  no: Disable
-            - When disabled, the lost item fee refund message is hidden.
-    Holds Policy:
-        -
-            - Use
-            - pref: UseLocationAsAQInSIP
-              choices:
-                  yes: permanent_location
-                  no: homebranch
-            - for AQ field in SIP protocol.
-    Holds Policy:
+    Holds policy:
         -
             - In the staff interface, split the holds queue into separate tables by
             - pref: HoldsSplitQueue
