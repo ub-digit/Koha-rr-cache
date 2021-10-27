@@ -1050,7 +1050,7 @@ sub GetImportBatchRangeDesc {
     my $query = "SELECT b.*, p.name as profile FROM import_batches b
                                     LEFT JOIN import_batch_profiles p
                                     ON b.profile_id = p.id
-                                    WHERE b.batch_type IN ('batch', 'webservice');
+                                    WHERE b.batch_type IN ('batch', 'webservice')";
 
     my @params;
 
