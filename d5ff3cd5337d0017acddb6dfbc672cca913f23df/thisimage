@@ -558,10 +558,6 @@ Circulation:
                   yes: individual patron preference
                   no: patron category
             - when sending overdue notices.i
-        -
-            - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
-            - pref: BypassOnSiteCheckoutConfirmaition
-            - (Separated by pipe -3|-2|-1)
     Checkin Policy:
         -
             - pref: TrapHoldsOnOrder
@@ -807,10 +803,10 @@ Circulation:
                   0: Automatically
             - mark a hold as found and waiting when a hold is placed on a specific item and that item is already checked in.
         -
-            - Patrons can only have
+            - Patrons can have a maximum of
             - pref: maxreserves
               class: integer
-            - holds at once.
+            - holds at once (leave blank or set to 0 to disable). Additional limits may apply based on circulation rules.
         -
             - pref: emailLibrarianWhenHoldIsPlaced
               choices:
@@ -934,8 +930,8 @@ Circulation:
             - pref: DefaultHoldExpirationdate
               default: 0
               choices:
-                  yes: Set
-                  no: Don't set
+                  1: Set
+                  0: Don't set
             - default expiration date for holds automatically.
             - If enabled, set expiration date
             - pref: DefaultHoldExpirationdatePeriod
@@ -1145,7 +1141,7 @@ Circulation:
               choices:
                   1: username and password
                   0: cardnumber
-            - "."
+            - ".</br>NOTE: If using 'cardnumber' and AutoSelfCheckAllowed you should set SelfCheckAllowByIPRanges to prevent brute force attacks to gain patron information outside the library."
         -
             - "Time out the current patron's web-based self checkout system login after"
             - pref: SelfCheckTimeout
@@ -1298,3 +1294,9 @@ Circulation:
             - pref: ClaimReturnedWarningThreshold
               class: integer
             - items.
+        -
+            - Remove resolved return claims older than
+            - pref: CleanUpDatabaseReturnClaims
+              class: integer
+            - days.
+            - <span class="hint">This system preference is used by the cleanup_database.pl cronjob.</span>

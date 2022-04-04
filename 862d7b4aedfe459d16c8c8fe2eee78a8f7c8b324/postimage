@@ -165,19 +165,6 @@ Cataloging:
             - and record's last modifier name in MARC subfield
             - pref: MarcFieldForModifierName
             - ". <br/><strong>NOTE:</strong> Use a dollar sign between field and subfield like 123$a."
-        -
-<<<<<<<
-            - Apply the MARC modification template with name
-            - pref: SaveBiblioMarcModificationTemplate
-              class: short
-            - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
-=======
-            - pref: AutoAddSystemControlNumberAndMARCOrgCode
-              choices:
-                  yes: Add
-                  no: Do not add
-            - System-Control-Number (001) and Control-Number-Identifier (003) automatically from biblionumber and MARCOrgCode.
->>>>>>>
     Display:
         -
             - 'Separate main entry and subdivisions with '
@@ -293,6 +280,12 @@ Cataloging:
             - pref: MaxComponentRecords
             - "records will be displayed."
             - "<br/> UNIMARC is not supported."
+        -
+            - pref: Show095WhenNoCallnumber
+              choices:
+                  yes: Show
+                  no: Do not show
+            - 095a as callnumber when item has no itemcallnumber.
     Importing:
         -
             - When matching on ISBN with the record import tool,
