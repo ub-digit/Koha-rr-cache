@@ -801,7 +801,7 @@ sub CanBookBeIssued {
     my $circ_library = Koha::Libraries->find( _GetCircControlBranch($item_object, $patron) );
 
     my $now = dt_from_string();
-    $duedate ||= CalcDateDue( $now, $effective_itemtype, $circ_library->branchcode, $patron_unblessed );
+    $duedate ||= CalcDateDue( $now, $effective_itemtype, $circ_library->branchcode, $patron );
     if (DateTime->compare($duedate,$now) == -1 ) { # duedate cannot be before now
          $needsconfirmation{INVALID_DATE} = $duedate;
     }
@@ -1412,7 +1412,7 @@ sub checkHighHolds {
         );
         my $calendar = Koha::Calendar->new( branchcode => $branchcode, days_mode => $daysmode );
 
-        my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branchcode, $patron->unblessed );
+        my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branchcode, $patron );
 
         my $rule = Koha::CirculationRules->get_effective_rule_value(
             {
@@ -1708,7 +1708,7 @@ sub AddIssue {
                         {
                             issue       => $actualissue,
                             item        => $item_unblessed,
-                            borrower    => $patron,
+                            borrower    => $patron->unblessed,
                             return_date => $issuedate
                         }
                     );
@@ -1760,7 +1760,7 @@ sub AddIssue {
                     {
                         type     => 'CHECKOUT',
                         item     => $item_object->unblessed,
-                        borrower => $patron,
+                        borrower => $patron->unblessed,
                         branch   => $branchcode,
                     }
                 );
@@ -2103,7 +2103,7 @@ sub AddReturn {
     my $borrowernumber = $patron ? $patron->borrowernumber : undef;    # we don't know if we had a borrower or not
     my $patron_unblessed = $patron ? $patron->unblessed : {};
 
-    my $update_loc_rules = C4::Context::yaml_preference->('UpdateItemLocationOnCheckin');
+    my $update_loc_rules = C4::Context->yaml_preference('UpdateItemLocationOnCheckin');
     map { $update_loc_rules->{$_} = $update_loc_rules->{$_}[0] } keys %$update_loc_rules; #We can only move to one location so we flatten the arrays
     if ($update_loc_rules) {
         if (defined $update_loc_rules->{_ALL_}) {
@@ -2584,11 +2584,14 @@ to ease testing.
 sub _calculate_new_debar_dt {
     my ( $borrower, $item, $dt_due, $return_date ) = @_;
 
-    my $branchcode = _GetCircControlBranch( $item, $borrower );
+    my $patron = Koha::Patrons->find( $borrower->{borrowernumber} );
+    $item = Koha::Items->find( $item->{itemnumber} );
+
+    my $branchcode = _GetCircControlBranch( $item, $patron );
     my $circcontrol = C4::Context->preference('CircControl');
     my $issuing_rule = Koha::CirculationRules->get_effective_rules(
-        {   categorycode => $borrower->{categorycode},
-            itemtype     => $item->{itype},
+        {   categorycode => $patron->categorycode,
+            itemtype     => $item->effective_itemtype,
             branchcode   => $branchcode,
             rules => [
                 'finedays',
@@ -2637,8 +2640,8 @@ sub _calculate_new_debar_dt {
         }
 
         my ( $has_been_extended );
-        if ( C4::Context->preference('CumulativeRestrictionPeriods') and $borrower->{debarred} ) {
-            my $debarment = @{ GetDebarments( { borrowernumber => $borrower->{borrowernumber}, type => 'SUSPENSION' } ) }[0];
+        if ( C4::Context->preference('CumulativeRestrictionPeriods') and $patron->is_debarred ) {
+            my $debarment = @{ GetDebarments( { borrowernumber => $patron->borrowernumber, type => 'SUSPENSION' } ) }[0];
             if ( $debarment ) {
                 $return_date = dt_from_string( $debarment->{expiration}, 'sql' );
                 $has_been_extended = 1;
@@ -2838,13 +2841,13 @@ sub GetUpcomingDueIssues {
 
 =head2 CanBookBeRenewed
 
-  ($ok,$error,$info) = &CanBookBeRenewed($borrowernumber_or_patron, $itemnumber_or_item, $override_limit]);
+  ($ok,$error,$info) = &CanBookBeRenewed($patron, $issue, $override_limit);
 
 Find out whether a borrowed item may be renewed.
 
 C<$patron> is the patron who currently has the issue.
 
-C<$issue> is the issue to renew.
+C<$issue> is the checkout to renew.
 
 C<$override_limit>, if supplied with a true value, causes
 the limit on the number of times that the loan can be renewed
@@ -3086,7 +3089,7 @@ sub AddRenewal {
             $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
                                             dt_from_string( $issue->date_due, 'sql' ) :
                                             dt_from_string();
-            $datedue =  CalcDateDue($datedue, $itemtype, $circ_library->branchcode, $patron_unblessed, 'is a renewal');
+            $datedue =  CalcDateDue($datedue, $itemtype, $circ_library->branchcode, $patron, 'is a renewal');
         }
 
         my $fees = Koha::Charges::Fees->new(
