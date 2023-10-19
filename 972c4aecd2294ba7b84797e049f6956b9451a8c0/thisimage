@@ -26,7 +26,7 @@ use Encode;
 
 use C4::Context;
 use C4::Stats qw( UpdateStats );
-use C4::Reserves qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority RevertWaitingStatus IsItemOnHoldAndFound IsAvailableForItemLevelRequest ItemsAnyAvailableAndNotRestricted );
+use C4::Reserves qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority RevertWaitingStatus IsItemOnHoldAndFound IsAvailableForItemLevelRequest );
 use C4::Biblio qw( UpdateTotalIssues );
 use C4::Items qw( ModItemTransfer ModDateLastSeen CartToShelf );
 use C4::Accounts;
@@ -683,6 +683,7 @@ data is keyed in lower case!
 Available keys:
     override_high_holds - Ignore high holds
     onsite_checkout     - Checkout is an onsite checkout that will not leave the library
+    item                - Optionally pass the object for the item we are checking out to save a lookup
 
 =back
 
@@ -776,7 +777,8 @@ sub CanBookBeIssued {
     my $onsite_checkout     = $params->{onsite_checkout}     || 0;
     my $override_high_holds = $params->{override_high_holds} || 0;
 
-    my $item_object = Koha::Items->find({barcode => $barcode });
+    my $item_object = $params->{item}
+      // Koha::Items->find( { barcode => $barcode } );
 
     # MANDATORY CHECKS - unless item exists, nothing else matters
     unless ( $item_object ) {
@@ -824,6 +826,8 @@ sub CanBookBeIssued {
                 borrowernumber => $patron->borrowernumber,
                 ccode          => $item_object->ccode,
                 categorycode   => $patron->categorycode,
+                location       => $item_object->location,
+                interface      => C4::Context->interface,
             }
         );
         ModDateLastSeen( $item_object->itemnumber ); # FIXME Move to Koha::Item
@@ -1536,12 +1540,16 @@ sub AddIssue {
         if ( $actualissue and $actualissue->borrowernumber eq $borrower->{'borrowernumber'}
                 and not $switch_onsite_checkout ) {
             $datedue = AddRenewal(
-                $borrower->{'borrowernumber'},
-                $item_object->itemnumber,
-                $branchcode,
-                $datedue,
-                $issuedate,    # here interpreted as the renewal date
+                {
+                    borrowernumber => $borrower->{'borrowernumber'},
+                    itemnumber     => $item_object->itemnumber,
+                    branch         => $branchcode,
+                    datedue        => $datedue,
+                    lastreneweddate =>
+                      $issuedate,    # here interpreted as the renewal date
+                }
             );
+            $issue = $item_object->checkout;
         }
         else {
 
@@ -1693,7 +1701,7 @@ sub AddIssue {
             $item_object->itemlost(0);
             $item_object->onloan($datedue->ymd());
             $item_object->datelastborrowed( dt_from_string()->ymd() );
-            $item_object->datelastseen( dt_from_string()->ymd() );
+            $item_object->datelastseen( dt_from_string() );
             $item_object->store( { log_action => 0, skip_holds_queue => 1 } );
 
             # If the item was lost, it has now been found, charge the overdue if necessary
@@ -1738,6 +1746,25 @@ sub AddIssue {
                 }
             }
 
+            my $yaml = C4::Context->preference('UpdateNotForLoanStatusOnCheckout');
+            if ($yaml) {
+                $yaml = "$yaml\n\n";
+
+                my $rules;
+                eval { $rules = YAML::XS::Load(Encode::encode_utf8($yaml)); };
+                if ($@) {
+                    warn "Unable to parse UpdateNotForLoanStatusOnCheckout syspref : $@";
+                }
+                else {
+                    foreach my $key ( keys %$rules ) {
+                        if ( $item_object->notforloan eq $key ) {
+                            $item_object->notforloan($rules->{$key})->store({ log_action => 0, skip_record_index => 1 });
+                            last;
+                        }
+                    }
+                }
+            }
+
             # Record the fact that this book was issued.
             C4::Stats::UpdateStats(
                 {
@@ -1750,7 +1777,8 @@ sub AddIssue {
                     location       => $item_object->location,
                     borrowernumber => $borrower->{'borrowernumber'},
                     ccode          => $item_object->ccode,
-                    categorycode   => $borrower->{'categorycode'}
+                    categorycode   => $borrower->{'categorycode'},
+                    interface      => C4::Context->interface,
                 }
             );
 
@@ -2114,27 +2142,65 @@ sub AddReturn {
     my $borrowernumber = $patron ? $patron->borrowernumber : undef;    # we don't know if we had a borrower or not
     my $patron_unblessed = $patron ? $patron->unblessed : {};
 
-    my $update_loc_rules = Koha::Config::SysPrefs->find('UpdateItemLocationOnCheckin')->get_yaml_pref_hash();
-    map { $update_loc_rules->{$_} = $update_loc_rules->{$_}[0] } keys %$update_loc_rules; #We can only move to one location so we flatten the arrays
+    my $update_loc_rules = C4::Context->yaml_preference('UpdateItemLocationOnCheckin');
     if ($update_loc_rules) {
-        if (defined $update_loc_rules->{_ALL_}) {
-            if ($update_loc_rules->{_ALL_} eq '_PERM_') { $update_loc_rules->{_ALL_} = $item->permanent_location; }
-            if ($update_loc_rules->{_ALL_} eq '_BLANK_') { $update_loc_rules->{_ALL_} = ''; }
+        if ( defined $update_loc_rules->{_ALL_} ) {
+            if ( $update_loc_rules->{_ALL_} eq '_PERM_' ) {
+                $update_loc_rules->{_ALL_} = $item->permanent_location;
+            }
+            if ( $update_loc_rules->{_ALL_} eq '_BLANK_' ) {
+                $update_loc_rules->{_ALL_} = '';
+            }
             if (
-                ( defined $item->location && $item->location ne $update_loc_rules->{_ALL_}) ||
-                (!defined $item->location && $update_loc_rules->{_ALL_} ne "")
-               ) {
-                $messages->{'ItemLocationUpdated'} = { from => $item->location, to => $update_loc_rules->{_ALL_} };
-                $item->location($update_loc_rules->{_ALL_})->store({ log_action => 0, skip_record_index => 1, skip_holds_queue => 1});
+                (
+                    defined $item->location
+                    && $item->location ne $update_loc_rules->{_ALL_}
+                )
+                || ( !defined $item->location
+                    && $update_loc_rules->{_ALL_} ne "" )
+              )
+            {
+                $messages->{'ItemLocationUpdated'} =
+                  { from => $item->location, to => $update_loc_rules->{_ALL_} };
+                $item->location( $update_loc_rules->{_ALL_} )->store(
+                    {
+                        log_action        => 0,
+                        skip_record_index => 1,
+                        skip_holds_queue  => 1
+                    }
+                );
             }
         }
         else {
             foreach my $key ( keys %$update_loc_rules ) {
-                if ( $update_loc_rules->{$key} eq '_PERM_' ) { $update_loc_rules->{$key} = $item->permanent_location; }
-                if ( $update_loc_rules->{$key} eq '_BLANK_') { $update_loc_rules->{$key} = '' ;}
-                if ( ($item->location eq $key && $item->location ne $update_loc_rules->{$key}) || ($key eq '_BLANK_' && $item->location eq '' && $update_loc_rules->{$key} ne '') ) {
-                    $messages->{'ItemLocationUpdated'} = { from => $item->location, to => $update_loc_rules->{$key} };
-                    $item->location($update_loc_rules->{$key})->store({ log_action => 0, skip_record_index => 1, skip_holds_queue => 1});
+                if ( $update_loc_rules->{$key} eq '_PERM_' ) {
+                    $update_loc_rules->{$key} = $item->permanent_location;
+                }
+                elsif ( $update_loc_rules->{$key} eq '_BLANK_' ) {
+                    $update_loc_rules->{$key} = '';
+                }
+                if (
+                    (
+                           defined $item->location
+                        && $item->location eq $key
+                        && $item->location ne $update_loc_rules->{$key}
+                    )
+                    || (   $key eq '_BLANK_'
+                        && ( !defined $item->location || $item->location eq '' )
+                        && $update_loc_rules->{$key} ne '' )
+                  )
+                {
+                    $messages->{'ItemLocationUpdated'} = {
+                        from => $item->location,
+                        to   => $update_loc_rules->{$key}
+                    };
+                    $item->location( $update_loc_rules->{$key} )->store(
+                        {
+                            log_action        => 0,
+                            skip_record_index => 1,
+                            skip_holds_queue  => 1
+                        }
+                    );
                     last;
                 }
             }
@@ -2273,7 +2339,8 @@ sub AddReturn {
                 $transfer->receive;
                 $messages->{'TransferArrived'} = $transfer->frombranch;
                 # validTransfer=1 allows us returning the item back if the reserve is cancelled
-                $validTransfer = 1 if $transfer->reason eq 'Reserve';
+                $validTransfer = 1
+                  if defined $transfer->reason && $transfer->reason eq 'Reserve';
             }
             else {
                 $messages->{'WrongTransfer'}     = $transfer->tobranch;
@@ -2289,8 +2356,15 @@ sub AddReturn {
                 $validTransfer = 1 if $transfer->reason eq 'Reserve';
             }
             else {
-                $messages->{'WasTransfered'}   = $transfer->tobranch;
                 $messages->{'TransferTrigger'} = $transfer->reason;
+                if ( $transfer->frombranch eq $branch ) {
+                    $transfer->transit;
+                    $messages->{'WasTransfered'}   = $transfer->tobranch;
+                }
+                else {
+                    $messages->{'WrongTransfer'}     = $transfer->tobranch;
+                    $messages->{'WrongTransferItem'} = $item->itemnumber;
+                }
             }
         }
     }
@@ -2376,6 +2450,7 @@ sub AddReturn {
         borrowernumber => $borrowernumber,
         ccode          => $item->ccode,
         categorycode   => $categorycode,
+        interface      => C4::Context->interface,
     });
 
     # Send a check-in slip. # NOTE: borrower may be undef. Do not try to send messages then.
@@ -2551,7 +2626,7 @@ sub MarkIssueReturned {
 
         if ( C4::Context->preference('StoreLastBorrower') ) {
             my $item = Koha::Items->find( $itemnumber );
-            $item->last_returned_by( $patron );
+            $item->last_returned_by( $patron->borrowernumber )->store;
         }
 
         # Remove any OVERDUES related debarment if the borrower has no overdues
@@ -2949,6 +3024,10 @@ sub CanBookBeRenewed {
         }
     }
 
+    # There is an item level hold on this item, no other item can fill the hold
+    return ( 0, "on_reserve" )
+      if ( $item->current_holds->search( { non_priority => 0 } )->count );
+
     my $fillable_holds = Koha::Holds->search(
         {
             biblionumber => $item->biblionumber,
@@ -2976,17 +3055,13 @@ sub CanBookBeRenewed {
             foreach my $possible_hold (@possible_holds) {
                 my $fillable = 0;
                 my $patron_with_reserve = Koha::Patrons->find($possible_hold->borrowernumber);
-                my $items_any_available = ItemsAnyAvailableAndNotRestricted({
-                    biblionumber => $item->biblionumber,
-                    patron => $patron_with_reserve
-                });
 
                 # FIXME: We are not checking whether the item we are renewing can fill the hold
 
                 foreach my $other_item (@other_items) {
                   next if defined $matched_items{$other_item->itemnumber};
                   next if IsItemOnHoldAndFound( $other_item->itemnumber );
-                  next unless IsAvailableForItemLevelRequest($other_item, $patron_with_reserve, undef, $items_any_available);
+                  next unless IsAvailableForItemLevelRequest($other_item, $patron_with_reserve, undef);
                   next unless CanItemBeReserved($patron_with_reserve,$other_item,undef,{ignore_hold_counts=>1})->{status} eq 'OK';
                   # NOTE: At checkin we call 'CheckReserves' which checks hold 'policy'
                   # CanItemBeReserved checks 'rules' and 'policies' which means
@@ -3017,9 +3092,19 @@ sub CanBookBeRenewed {
 
 =head2 AddRenewal
 
-  &AddRenewal($borrowernumber, $itemnumber, $branch, [$datedue], [$lastreneweddate], [$seen], [$automatic]);
+  $new_date_due = AddRenewal({
+      borrowernumber   => $borrowernumber,
+      itemnumber       => $itemnumber,
+      branch           => $branch,
+      [datedue         => $datedue],
+      [lastreneweddate => $lastreneweddate],
+      [skipfinecalc    => $skipfinecalc],
+      [seen            => $seen],
+      [automatic       => $automatic],
+      [skip_record_index => $skip_record_index]
+  });
 
-Renews a loan.
+Renews a loan, returns the updated due date upon success.
 
 C<$borrowernumber> is the borrower number of the patron who currently
 has the item.
@@ -3048,17 +3133,25 @@ fallback to a true value
 
 C<$automatic> is a boolean flag indicating the renewal was triggered automatically and not by a person ( librarian or patron )
 
+C<$skip_record_index> is an optional boolean flag to indicate whether queuing the search indexing
+should be skipped for this renewal.
+
 =cut
 
 sub AddRenewal {
-    my $borrowernumber  = shift;
-    my $itemnumber      = shift or return;
-    my $branch          = shift;
-    my $datedue         = shift;
-    my $lastreneweddate = shift || dt_from_string();
-    my $skipfinecalc    = shift;
-    my $seen            = shift;
-    my $automatic       = shift;
+    my $params = shift;
+
+    my $borrowernumber  = $params->{borrowernumber};
+    my $itemnumber      = $params->{itemnumber};
+    return unless $itemnumber;
+
+    my $branch            = $params->{branch};
+    my $datedue           = $params->{datedue};
+    my $lastreneweddate   = $params->{lastreneweddate} // dt_from_string();
+    my $skipfinecalc      = $params->{skipfinecalc};
+    my $seen              = $params->{seen};
+    my $automatic         = $params->{automatic};
+    my $skip_record_index = $params->{skip_record_index};
 
     # Fallback on a 'seen' renewal
     $seen = defined $seen && $seen == 0 ? 0 : 1;
@@ -3153,7 +3246,8 @@ sub AddRenewal {
         $renews = ( $item_object->renewals || 0 ) + 1;
         $item_object->renewals($renews);
         $item_object->onloan($datedue);
-        $item_object->store({ log_action => 0 });
+        # Don't index as we are in a transaction, skip hardcoded here
+        $item_object->store({ log_action => 0, skip_record_index => 1 });
 
         # Charge a new rental fee, if applicable
         my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber );
@@ -3225,6 +3319,7 @@ sub AddRenewal {
                 borrowernumber => $borrowernumber,
                 ccode          => $item_object->ccode,
                 categorycode   => $patron->categorycode,
+                interface      => C4::Context->interface,
             }
         );
 
@@ -3238,6 +3333,12 @@ sub AddRenewal {
             }
         });
     });
+
+    unless( $skip_record_index ){
+        # We index now, after the transaction is committed
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( $item_object->biblionumber, "specialUpdate", "biblioserver" );
+    }
 
     return $datedue;
 }
@@ -3355,7 +3456,7 @@ sub GetSoonestRenewDate {
         {
             $soonestrenewal->truncate( to => 'day' );
         }
-        return $soonestrenewal if $now < $soonestrenewal;
+        return $soonestrenewal;
     } elsif ( $issue->auto_renew && $patron->autorenew_checkouts ) {
         # Checkouts with auto-renewing fall back to due date
         my $soonestrenewal = dt_from_string( $issue->date_due );
@@ -3643,7 +3744,8 @@ sub SendCirculationAlert {
         my $message = C4::Message->find_last_message($borrower, $type, $mtt);
         unless ( $message ) {
             C4::Context->dbh->do(q|UNLOCK TABLES|) unless $do_not_lock;
-            C4::Message->enqueue($letter, $borrower, $mtt);
+            my $patron = Koha::Patrons->find($borrower->{borrowernumber});
+            C4::Message->enqueue($letter, $patron, $mtt);
         } else {
             $message->append($letter);
             $message->update;
@@ -4030,7 +4132,6 @@ sub ProcessOfflineReturn {
                 $itemnumber,
                 $operation->{timestamp},
             );
-            $item->renewals_count(0);
             $item->onloan(undef);
             $item->store({ log_action => 0 });
             return "Success.";

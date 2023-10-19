@@ -164,8 +164,6 @@ my @failedreturns = $query->multi_param('failedreturn');
 our %return_failed = ();
 for (@failedreturns) { $return_failed{$_} = 1; }
 
-my $searchtype = $query->param('searchtype') || q{contain};
-
 my $branch = C4::Context->userenv->{'branch'};
 
 for my $barcode ( @$barcodes ) {
@@ -283,6 +281,7 @@ if ($patron) {
         $template->param(
             'userdebarred'    => $patron->debarred,
             'debarredcomment' => $patron->debarredcomment,
+            'debarredsince'   => $patron->restrictions->search()->single->created,
         );
 
         if ( $patron->debarred ne "9999-12-31" ) {
@@ -654,7 +653,7 @@ $template->param(
     debt_confirmed            => $debt_confirmed,
     SpecifyDueDate            => $duedatespec_allow,
     PatronAutoComplete        => C4::Context->preference("PatronAutoComplete"),
-    todaysdate                => dt_from_string()->set(hour => 23)->set(minute => 59),
+    today_due_date_and_time   => dt_from_string()->set(hour => 23)->set(minute => 59),
     restriction_types         => scalar Koha::Patron::Restriction::Types->search(),
     has_modifications         => $has_modifications,
     override_high_holds       => $override_high_holds,
