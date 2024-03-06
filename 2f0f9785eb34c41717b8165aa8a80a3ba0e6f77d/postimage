@@ -54,9 +54,14 @@
         <div class="row">
             <div class="col-sm-10 col-sm-push-2">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
 
                     [% INCLUDE 'members-toolbar.inc' %]
+
+                    [% IF is_anonymous %]
+                        <div class="dialog alert">This is the anonymous patron.</div>
+                    [% END %]
 
                     [% IF ( error ) %]
                         <div class="dialog alert">
@@ -187,24 +192,25 @@
                                                 </li>
                                             [% END %]
                                         [% END %]
-                                         <li id="patron-privacyguarantor">
-                                            <span class="label">Show checkouts to guarantor:</span>
-                                            [% IF patron.privacy_guarantor_checkouts %]
-                                                Yes
-                                            [% ELSE %]
-                                                No
-                                            [% END %]
-                                        </li>
+                                        [% IF Koha.Preference("borrowerRelationship") %]
+                                             <li id="patron-privacyguarantor">
+                                                <span class="label">Show checkouts to guarantor:</span>
+                                                [% IF patron.privacy_guarantor_checkouts %]
+                                                    Yes
+                                                [% ELSE %]
+                                                    No
+                                                [% END %]
+                                            </li>
 
-                                        <li id="patron-privacy_guarantor_fines">
-                                            <span class="label">Show charges to guarantor:</span>
-                                            [% IF patron.privacy_guarantor_fines %]
-                                                Yes
-                                            [% ELSE %]
-                                                No
-                                            [% END %]
-                                        </li>
-
+                                            <li id="patron-privacy_guarantor_fines">
+                                                <span class="label">Show charges to guarantor:</span>
+                                                [% IF patron.privacy_guarantor_fines %]
+                                                    Yes
+                                                [% ELSE %]
+                                                    No
+                                                [% END %]
+                                            </li>
+                                        [% END %]
                                         [% IF guarantees %]
                                             <li>
                                                 <span class="label">Guarantees:</span>
@@ -354,11 +360,13 @@
                                     [% IF Koha.Preference('SMSSendDriver') %]
                                         <div class="rows">
                                             <ol>
-                                                <li>
-                                                    <span class="label">SMS number:</span>
-                                                    <a href="sms:[% patron.smsalertnumber | uri %]">[% patron.smsalertnumber | html %]</a>
-                                                </li>
-                                                [% IF Koha.Preference( 'SMSSendDriver') == 'Email' %]
+                                                [% IF patron.smsalertnumber %]
+                                                    <li>
+                                                        <span class="label">SMS number:</span>
+                                                        <a href="sms:[% patron.smsalertnumber | uri %]">[% patron.smsalertnumber | html %]</a>
+                                                    </li>
+                                                [% END %]
+                                                [% IF Koha.Preference( 'SMSSendDriver') == 'Email' && patron.sms_provider.name %]
                                                 <li>
                                                     <span class="label">SMS provider:</span>
                                                     [% patron.sms_provider.name | html %]
@@ -480,6 +488,14 @@
                                                 [% END %]
                                             </li>
                                         [% END %]
+                                        <li id="patron-protected">
+                                            <span class="label">Protected: </span>
+                                            [% IF ( patron.protected == 1 ) %]
+                                                Yes
+                                            [% ELSE %]
+                                                No
+                                            [% END %]
+                                        </li>
 
                                         [% IF ( patron.borrowernotes ) %]
                                             <li id="patron-borrowernotes">
@@ -721,6 +737,7 @@
 
         table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
         table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
+        table_settings_holds_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'holds-table', 'json' ) | $raw %]
 
         $(document).ready(function() {
             $("#info_digests").tooltip();
