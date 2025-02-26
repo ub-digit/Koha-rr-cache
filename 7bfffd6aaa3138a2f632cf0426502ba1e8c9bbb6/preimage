@@ -8,11 +8,7 @@
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
 [% USE Price %]
-<<<<<<<
 [% USE ExtendedAttributeProperties %]
-=======
-[% USE UBPickupCode %]
->>>>>>>
 
 [% PROCESS 'member-display-address-style.inc' %]
 [% PROCESS 'member-display-alt-address-style.inc' %]
@@ -347,10 +343,17 @@
                                                         [% IF ExtendedAttributeProperties.isVisible(item) %]
                                                             <li data-pa_code="[% item.type.code | replace('[^a-zA-Z0-9_-]', '') %]">
                                                                 <span class="label">[% item.type.description | html %]: </span>
+<<<<<<<
+                                                                [% IF ExtendedAttributeProperties.hasSecretValue(item) %]
+                                                                ****
+                                                                [% ELSE %]
+                                                                [% item.description | html_line_break %]
+=======
                                                                 [% IF item.type.is_date %]
                                                                     [% item.description | $KohaDates %]
                                                                 [% ELSE %]
                                                                     [% item.description | html_line_break %]
+>>>>>>>
                                                                 [% END %]
                                                             </li>
                                                         [% END %]
@@ -417,10 +420,6 @@
                                         <li id="patron-cardnumber">
                                             <span class="label">Card number: </span>
                                             [% patron.cardnumber | html %]
-                                        </li>
-                                        <li id="patron-pickupcode">
-                                            <span class="label">Kod för avhämtning: </span>
-                                            [% UBPickupCode.PickupCode(patron) | html %]
                                         </li>
                                         <li id="patron-borrowernumber">
                                             <span class="label">Borrowernumber: </span>

@@ -1,13 +1,9 @@
 [% USE Koha %]
 [% USE KohaDates %]
-<<<<<<<
-[% USE UBPickupCode %]
-=======
 [% USE ViewLog %]
->>>>>>>
 [% PROCESS 'member-display-address-style.inc' %]
 [% IF ( patron.borrowernumber ) %]
-    [% CALL ViewLog.log_patron_view(patron.borrowernumber) %]
+    [% ViewLog.log_patron_view(patron.borrowernumber) %]
     [% SET patron_is_staff = patron.has_permission({ 'catalogue' => 1 }) %]
     [% SET patron_is_superlibrarian = patron.is_superlibrarian %]
     [% SET patron_type_class = 'is-not-staff' %]
@@ -144,9 +140,6 @@
                     </li>
                     <li class="patronlibrary">
                         Home library: [% Branches.GetName( patron.branchcode ) | html %]
-                    </li>
-                    <li class="patron-pickupcode">
-                        Kod för avhämtning: [% UBPickupCode.PickupCode(patron) | html %]
                     </li>
                     <li class="patronborrowernumber">
                         Borrowernumber: [% patron.borrowernumber | html %]

@@ -1,13 +1,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
-<<<<<<<
-[% USE UBPickupCode %]
-=======
-[% USE ViewLog %]
->>>>>>>
 [% PROCESS 'member-display-address-style.inc' %]
 [% IF ( patron.borrowernumber ) %]
-    [% CALL ViewLog.log_patron_view(patron.borrowernumber) %]
     [% SET patron_is_staff = patron.has_permission({ 'catalogue' => 1 }) %]
     [% SET patron_is_superlibrarian = patron.is_superlibrarian %]
     [% SET patron_type_class = 'is-not-staff' %]
@@ -145,9 +139,6 @@
                     <li class="patronlibrary">
                         Home library: [% Branches.GetName( patron.branchcode ) | html %]
                     </li>
-                    <li class="patron-pickupcode">
-                        Kod för avhämtning: [% UBPickupCode.PickupCode(patron) | html %]
-                    </li>
                     <li class="patronborrowernumber">
                         Borrowernumber: [% patron.borrowernumber | html %]
                     </li>
@@ -195,14 +186,14 @@
                     </li>
                 [% END %]
             [% END %]
-            [% IF CAN_user_borrowers_edit_borrowers %]
+            [% IF CAN_user_tools_view_system_logs %]
                 [% IF ( intranetreadinghistory ) %]
                     [% IF ( readingrecordview ) %]<li class="active">[% ELSE %]<li>[% END %]
                         <a href="/cgi-bin/koha/members/readingrec.pl?borrowernumber=[% patron.borrowernumber | uri %]">Circulation history</a>
                     </li>
                 [% END %]
             [% END %]
-            [% IF CAN_user_borrowers_edit_borrowers %]
+            [% IF CAN_user_tools_view_system_logs %]
                 [% IF ( IntranetReadingHistoryHolds ) %]
                     [% IF ( holdshistoryview ) %]<li class="active">[% ELSE %]<li>[% END %]
                         <a href="/cgi-bin/koha/members/holdshistory.pl?borrowernumber=[% patron.borrowernumber | uri %]">Holds history</a>
