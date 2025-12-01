@@ -187,10 +187,10 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' => sub {
 
-    plan tests => 71;
+    plan tests => 81;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'base64ISO2709');
+    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'ISO2709');
 
     my @mappings = (
         {
@@ -706,21 +706,25 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     ok(!(defined $docs->[0]->{unimarc_title}), "No mapping when marc_type doesn't match marc flavour");
 
-    # Marc serialization format fallback for records exceeding ISO2709 max record size
+    # Marc serialization format fallback for records exceeding base64ISO2709 max record size
 
     my $large_marc_record = MARC::Record->new();
     $large_marc_record->leader('     cam a22      a 4500');
 
     $large_marc_record->append_fields(
-        MARC::Field->new('100', '', '', a => 'Author 1'),
-        MARC::Field->new('110', '', '', a => 'Corp Author'),
-        MARC::Field->new('210', '', '', a => 'Title 1'),
+        MARC::Field->new( '100', '', '', a => 'Author 1' ),
+        MARC::Field->new( '110', '', '', a => 'Corp Author' ),
+        MARC::Field->new( '210', '', '', a => 'Title 1' ),
         # "|" is for testing escaping for multiple values with custom format
-        MARC::Field->new('245', '', '', a => 'Title:', b => 'large | record'),
-        MARC::Field->new('999', '', '', c => '1234569'),
+        MARC::Field->new( '245', '', '', a => 'Title:', b => 'large | record' ),
+        MARC::Field->new( '999', '', '', c => '1234569' ),
     );
 
-    my $item_field = MARC::Field->new('952', '', '', o => '123456789123456789123456789', p => '123456789', z => 'To naprawdę bardzo długa notatka. Myślę, że będzie sprawiać kłopoty.');
+    my $item_field = MARC::Field->new(
+        '952', '', '', o => '123456789123456789123456789', p => '123456789',
+        z => 'To naprawdę bardzo długa notatka. Myślę, że będzie sprawiać kłopoty.'
+    );
+
     my $items_count = 1638;
     while(--$items_count) {
         $large_marc_record->append_fields($item_field);
@@ -730,7 +734,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     is($docs->[0]->{marc_format}, 'MARCXML', 'For record exceeding max record size marc_format should be set correctly');
 
-    $decoded_marc_record = $see->search_document_marc_record_decode($docs->[0]);
+    $decoded_marc_record = $see->search_document_marc_record_decode( $docs->[0] );
 
     ok($decoded_marc_record->isa('MARC::Record'), "MARCXML record successfully decoded from result");
     is($decoded_marc_record->as_xml_record(), $large_marc_record->as_xml_record(), "Decoded MARCXML record has same data as original record");
@@ -996,7 +1000,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents_array () t
 
     is($docs->[0]->{marc_format}, 'ARRAY', 'First document marc_format should be set correctly');
 
-    my $decoded_marc_record = $see->search_document_marc_record_decode($docs->[0]);
+    my $decoded_marc_record = $see->search_document_marc_record_decode( $docs->[0] );
 
     ok($decoded_marc_record->isa('MARC::Record'), "ARRAY record successfully decoded from result");
     is($decoded_marc_record->as_usmarc(), $marc_record_1->as_usmarc(), "Decoded ARRAY record has same data as original record");
@@ -1006,8 +1010,8 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
 
     plan tests => 5;
 
-    t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'base64ISO2709');
+    t::lib::Mocks::mock_preference( 'marcflavour',             'MARC21' );
+    t::lib::Mocks::mock_preference( 'ElasticsearchMARCFormat', 'base64ISO2709' );
 
     my $builder = t::lib::TestBuilder->new;
     my $auth_type = $builder->build_object({ class => 'Koha::Authority::Types', value =>{
@@ -1120,10 +1124,15 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents with Inclu
     });
     my $authority_record = MARC::Record->new();
     $authority_record->append_fields(
-        MARC::Field->new(150, '', '', a => 'Foo'),
-        MARC::Field->new(450, '', '', a => 'Bar'),
+        MARC::Field->new( 150, '', '', a => 'Foo' ),
+        MARC::Field->new( 450, '', '', a => 'Bar' ),
     );
     $authority_record->encoding('UTF-8');
+
+    $dbh->do(
+        "INSERT INTO auth_header (datecreated,marcxml) values (NOW(),?)", undef,
+        ( $authority_record->as_xml_record('MARC21') )
+    );
     $dbh->do( "INSERT INTO auth_header (datecreated,marcxml) values (NOW(),?)", undef, ($authority_record->as_xml_record('MARC21') ) );
     my $authid = $dbh->last_insert_id( undef, undef, 'auth_header', 'authid' );
 
