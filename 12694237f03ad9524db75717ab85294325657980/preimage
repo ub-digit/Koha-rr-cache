@@ -1,10 +1,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
-[% USE ViewLog %]
-[% USE UBPickupCode %]
 [% PROCESS 'member-display-address-style.inc' %]
 [% IF ( patron.borrowernumber ) %]
-    [% CALL ViewLog.log_patron_view(patron.borrowernumber) %]
     [% SET patron_is_staff = patron.has_permission({ 'catalogue' => 1 }) %]
     [% SET patron_is_sco = patron.has_permission({ 'self_check' => 'self_checkout_module'}) %]
     [% SET patron_is_sci = patron.has_permission({ 'self_check' => 'self_checkin_module'}) %]
@@ -152,7 +149,6 @@
 
                     <li class="patroncategory"> Category: <span class="patroncategory_description">[% patron.category.description | html %]</span> <span class="patroncategory_code">([% patron.categorycode | html %])</span> </li>
                     <li class="patronlibrary"> Home library: [% Branches.GetName( patron.branchcode ) | html %] </li>
-                    <li class="patron-pickupcode"> Kod för avhämtning: [% UBPickupCode.PickupCode(patron) | html %] </li>
                     <li class="patronborrowernumber"> Borrowernumber: [% patron.borrowernumber | html %] </li>
                     <li class="patronupdatedon">Updated on: [% patron.updated_on | $KohaDates with_hours => 1 %]</li>
                     [% IF Koha.Preference('TrackLastPatronActivityTriggers') %]
@@ -205,6 +201,7 @@
                     </li>
                 [% END %]
             [% END %]
+<<<<<<<
             [% IF (CAN_user_borrowers_view_checkout_history && Koha.Preference('intranetreadinghistory')) %]
                 <li [% IF readingrecordview %]class="active"[% END %]>
                     <a href="/cgi-bin/koha/members/readingrec.pl?borrowernumber=[% patron.borrowernumber | uri %]">Circulation history</a>
@@ -214,6 +211,21 @@
                 <li [% IF holdshistoryview %]class="active"[% END %]>
                     <a href="/cgi-bin/koha/members/holdshistory.pl?borrowernumber=[% patron.borrowernumber | uri %]">Holds history</a>
                 </li>
+=======
+            [% IF CAN_user_tools_view_system_logs %]
+                [% IF ( intranetreadinghistory ) %]
+                    <li [% IF readingrecordview %]class="active"[% END %]>
+                        <a href="/cgi-bin/koha/members/readingrec.pl?borrowernumber=[% patron.borrowernumber | uri %]">Circulation history</a>
+                    </li>
+                [% END %]
+            [% END %]
+            [% IF CAN_user_tools_view_system_logs %]
+                [% IF ( IntranetReadingHistoryHolds ) %]
+                    <li [% IF holdshistoryview %]class="active"[% END %]>
+                        <a href="/cgi-bin/koha/members/holdshistory.pl?borrowernumber=[% patron.borrowernumber | uri %]">Holds history</a>
+                    </li>
+                [% END %]
+>>>>>>>
             [% END %]
             [% IF ( CAN_user_tools_view_system_logs ) %]
                 <li [% IF logview %]class="active"[% END %]>
